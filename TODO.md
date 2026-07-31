@@ -12,4 +12,5 @@
 
 - [x] 2026-08-01 vox-video 스킬 v1 구축 (스크립트 6종 + 가이드라인 2종 + SKILL.md)
 - [x] 2026-08-01 v0.2.0 마이그레이션: Gemini TTS + MLX Whisper 정렬, Codex 구독 OAuth 이미지 (c301957 이후)
+- [x] 2026-08-01 v0.3.0 참고 프로젝트 이식: TTS→로컬 clone-voice 백엔드(20 프로젝트), 영상→Gemini API omni flash 직접(26 프로젝트). 세 경로 실생성 검증
 - [x] ~~ElevenLabs 기본 보이스 만료 대응~~ — ElevenLabs 제거로 불필요해짐

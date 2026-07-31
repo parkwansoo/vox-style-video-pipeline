@@ -20,7 +20,10 @@ description: Vox 스타일 애니메이션 저널리즘 영상을 완전 자동�
 
 ## 0. 사전 점검 (실패 시 즉시 사용자에게 안내하고 중단)
 
-- `.env`의 `GEMINI_API_KEY`(TTS), `KIE_API_KEY`(영상)가 채워져 있는가
+- `.env`의 `GEMINI_API_KEY`(영상 Omni Flash용)가 채워져 있는가.
+  `KIE_API_KEY`는 **공인 클립(Seedance)이 있을 때만** 필요
+- 나레이션 TTS는 외장 SSD(Samsung_T5)의 clone-voice 백엔드를 자동 기동한다 —
+  SSD 미연결이면 tts.py가 안내 메시지와 함께 실패하니 연결을 요청한다
 - `codex login status`가 ChatGPT 로그인 상태인가 (이미지 생성은 구독 OAuth 사용)
 - `.venv`가 존재하는가 — 없으면 `python3 -m venv .venv && .venv/bin/pip install -r requirements.txt`
 - `assets/style_reference.png`가 존재하는가 (모든 이미지 생성의 스타일 기준.
@@ -51,9 +54,16 @@ description: Vox 스타일 애니메이션 저널리즘 영상을 완전 자동�
 .venv/bin/python3 .claude/skills/vox-video/scripts/tts.py --text-file output/<run>/ch1/script.txt --out-dir output/<run>/ch1
 ```
 
-- 내부 동작: Gemini TTS로 음성 생성 → 로컬 MLX Whisper(large-v3-turbo)로 단어
-  타이밍 추출 → 대본(정본)에 정렬. `narration.mp3`, `words.json`(단어별
-  start/end 초), `asr.json`(진단용), 요약(총 길이·`alignment_ratio`)이 나온다.
+- 내부 동작: 로컬 clone-voice 백엔드(Gemini 음색, SSD 자동 기동)로 음성 생성
+  → 로컬 MLX Whisper(large-v3-turbo)로 단어 타이밍 추출 → 대본(정본)에 정렬.
+  `narration.mp3`, `words.json`(단어별 start/end 초), `asr.json`(진단용),
+  요약(총 길이·`alignment_ratio`)이 나온다.
+- 음색 기본값은 Charon(남성 다큐 톤), 톤 프롬프트로 화자 성격을 지정한다
+  (.env `VOX_TTS_VOICE`/`VOX_TTS_TONE`으로 변경). 감정 비트가 필요한 대본이면
+  표현태그 삽입본을 `--tagged-file`로 따로 넘길 수 있다 (정렬은 항상 원본
+  기준. 지원 태그 16종: [laughs] [giggles] [sighs] [gasp] [whispers] [excited]
+  [amazed] [curious] [sarcastic] [serious] [shouting] [tired] [crying]
+  [trembling] [mischievously] [panicked] — 다큐 톤에는 보통 불필요).
 - 총 길이가 24초 미만/38초 초과면 대본을 조정해 재생성한다.
 - `alignment_ratio`가 0.8 미만이면 asr.json을 확인한다 — 발음이 뭉개진
   구간이 있으면 대본 표현을 바꿔 재생성한다 (숫자·고유명사가 흔한 원인).
@@ -109,9 +119,9 @@ description: Vox 스타일 애니메이션 저널리즘 영상을 완전 자동�
 작성한다.
 
 ```bash
-# 일반 클립 (이미지 = 참조)
+# 일반 클립 — Gemini API 직접 호출(gemini-omni-flash-preview), 이미지 = 참조
 .venv/bin/python3 .claude/skills/vox-video/scripts/gen_video.py --model omni --prompt-file output/<run>/ch1/clip1_vid.txt --image output/<run>/ch1/clip1.png --duration 4 --out output/<run>/ch1/clip1.mp4
-# 공인 클립 (이미지 = 첫 프레임, 프롬프트에 실명 절대 금지)
+# 공인 클립 — Kie.ai Seedance 2.0 Fast, 이미지 = 첫 프레임, 프롬프트에 실명 절대 금지
 .venv/bin/python3 .claude/skills/vox-video/scripts/gen_video.py --model seedance --prompt-file output/<run>/ch1/clip2_vid.txt --image output/<run>/ch1/clip2.png --duration 6 --out output/<run>/ch1/clip2.mp4
 ```
 
@@ -167,10 +177,12 @@ description: Vox 스타일 애니메이션 저널리즘 영상을 완전 자동�
 
 ## 비용 주의
 
-- 영상: 클립 하나 = Kie.ai 크레딧 소모 (유일한 실질 과금). 402(크레딧 부족)
-  발생 시 즉시 중단하고 사용자에게 충전을 안내한다.
+- 영상(일반): Gemini API 종량제 (Omni Flash). 오류/쿼터 초과 시 중단하고
+  사용자에게 안내한다.
+- 영상(공인): Kie.ai 크레딧 소모. 402(크레딧 부족) 발생 시 즉시 중단하고
+  사용자에게 충전을 안내한다.
 - 이미지: ChatGPT 구독 사용량(5시간 윈도우)을 소모 — 텍스트 대비 3~5배
   빠르게 차감되므로 불필요한 재생성을 피한다.
-- 나레이션: Gemini TTS 무료 티어로 충분. Whisper 정렬은 로컬(무료).
+- 나레이션: 로컬 clone-voice 백엔드(무료). Whisper 정렬도 로컬(무료).
 - 3~4챕터 실행은 소모가 크므로, 멀티 챕터 요청이 아니면 기본 1챕터로
   진행한다.

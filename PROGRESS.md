@@ -3,21 +3,21 @@
 Vox 스타일 애니메이션 저널리즘 영상을 완전 자동 생성하는 프로젝트 로컬 스킬
 (`/vox-video`).
 
-## 현재 상태 (2026-08-01, v0.2.0 마이그레이션 후)
+## 현재 상태 (2026-08-01, v0.3.0 — 참고 프로젝트 이식 완료)
 
-- ✅ v2 스택으로 마이그레이션 완료:
-  - 나레이션: ElevenLabs → **Gemini TTS**(무료 티어) + **로컬 MLX Whisper
-    large-v3-turbo** 단어 타이밍 + 대본 정렬 (`say` 한국어 음성으로 E2E 검증,
-    정렬률 92%)
-  - 이미지: Kie.ai GPT Image 2 → **Codex CLI 내장 이미지 생성 (ChatGPT 구독
-    OAuth, gpt-image-2)** — API 키 불필요, 실제 생성 검증 완료 (스타일 시트
-    반영 우수)
-  - 영상: 변경 없음 — Kie.ai **Gemini Omni Flash**(일반) / **Seedance 2.0
-    Fast**(공인) 유지 (사용자 결정: Veo 대신 Omni Flash)
-- ⏳ 사용자 준비물: `.env`에 `GEMINI_API_KEY`, `KIE_API_KEY` 입력, `music/`에
-  mp3 (선택), `codex login` 상태 유지
-- 실제 API 전체를 관통하는 첫 영상 생성은 아직 안 함 (Gemini TTS 구간만 키
-  대기)
+- ✅ v3 스택 확정, **세 경로 모두 실제 생성으로 검증 완료**:
+  - 나레이션: **로컬 clone-voice TTS 백엔드**(SSD Samsung_T5, 8930, 자동
+    기동, Gemini 음색 Charon 기본 + 톤 프롬프트) + **로컬 MLX Whisper** 정렬
+    — 20_숏츠 자동화 프로젝트 방식 이식. API 키 불필요. E2E 검증(정렬률 84%)
+  - 이미지: **Codex CLI 내장 생성 (ChatGPT 구독 OAuth, gpt-image-2)** —
+    API 키 불필요, 스타일 시트 반영 검증 완료
+  - 영상(일반): **Gemini API 직접 호출 `gemini-omni-flash-preview`**
+    (google-genai Interactions API + Files API 참조 업로드) — 26_vox_style_video
+    프로젝트 방식 이식. 4초 클립 실생성 검증 완료
+  - 영상(공인): Kie.ai Seedance 2.0 Fast 유지 (첫 프레임 방식)
+- `.env`: GEMINI_API_KEY는 26 프로젝트에서 복사해 채움. KIE_API_KEY는 공인
+  클립 쓸 때만 필요 (현재 비어 있음). `music/` mp3는 선택.
+- 다음: 첫 실전 영상 생성 (전체 파이프라인 관통)
 
 ## v1 상태 (2026-08-01 초기 구축)
 
@@ -69,3 +69,18 @@ Vox 스타일 애니메이션 저널리즘 영상을 완전 자동 생성하는 
   API에 없어 Kie.ai 경유가 계속 필요, KIE_API_KEY 유지.
 - 의존성은 프로젝트 `.venv`(requirements.txt: requests, python-dotenv,
   mlx-whisper). Whisper 모델은 ~/.cache/huggingface의 기존 스냅샷 재사용.
+
+## v0.3.0 참고 프로젝트 이식 결정 (2026-08-01)
+
+- **TTS는 Gemini API가 아니라 로컬 clone-voice 백엔드** (사용자 지시,
+  20_숏츠 자동화 이식): ensure_tts.sh가 SSD 이미지 마운트 + uvicorn(8930)
+  자동 기동. 음색 이름→프로필 id는 `/api/voices`의 `gemini-voice:<이름>`
+  태그로 해석. 톤 프롬프트에 "감정이 풍부함" + 비언어 가드 포함(20 프로젝트
+  실측 확정 규칙). 표현태그 삽입본은 --tagged-file, 정렬은 항상 원본 대본.
+- **Omni Flash는 Gemini API에 존재** (`gemini-omni-flash-preview`) — v0.2.0
+  조사 때 놓쳤던 것. google-genai SDK `client.interactions.create(model,
+  input=[image/text parts], response_format={type:video, duration:"4s"~,
+  aspect_ratio, delivery:"uri"})`, 이미지는 Files API 업로드 후 uri 참조,
+  duration 3~10초. 26_vox_style_video의 generate_video.py 이식.
+- Kie.ai는 공인 클립(Seedance 첫 프레임)에만 남김 — KIE_API_KEY 없이도
+  일반 영상은 전부 생성 가능.
