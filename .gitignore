@@ -1,0 +1,22 @@
+# 비밀 키
+.env
+
+# 실행 산출물 (영상/이미지/음성)
+output/
+
+# 사용자 음원 (용량 큼, 개인 파일)
+music/*
+!music/.gitkeep
+
+# Python
+__pycache__/
+*.pyc
+
+# macOS
+.DS_Store
+
+# 사용자 원본 자료 (프로젝트에 복사본 반영됨)
+drive-download-*/
+
+# Claude 로컬 설정
+.claude/settings.local.json
