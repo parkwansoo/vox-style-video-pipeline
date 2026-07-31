@@ -3,7 +3,23 @@
 Vox 스타일 애니메이션 저널리즘 영상을 완전 자동 생성하는 프로젝트 로컬 스킬
 (`/vox-video`).
 
-## 현재 상태 (2026-08-01)
+## 현재 상태 (2026-08-01, v0.2.0 마이그레이션 후)
+
+- ✅ v2 스택으로 마이그레이션 완료:
+  - 나레이션: ElevenLabs → **Gemini TTS**(무료 티어) + **로컬 MLX Whisper
+    large-v3-turbo** 단어 타이밍 + 대본 정렬 (`say` 한국어 음성으로 E2E 검증,
+    정렬률 92%)
+  - 이미지: Kie.ai GPT Image 2 → **Codex CLI 내장 이미지 생성 (ChatGPT 구독
+    OAuth, gpt-image-2)** — API 키 불필요, 실제 생성 검증 완료 (스타일 시트
+    반영 우수)
+  - 영상: 변경 없음 — Kie.ai **Gemini Omni Flash**(일반) / **Seedance 2.0
+    Fast**(공인) 유지 (사용자 결정: Veo 대신 Omni Flash)
+- ⏳ 사용자 준비물: `.env`에 `GEMINI_API_KEY`, `KIE_API_KEY` 입력, `music/`에
+  mp3 (선택), `codex login` 상태 유지
+- 실제 API 전체를 관통하는 첫 영상 생성은 아직 안 함 (Gemini TTS 구간만 키
+  대기)
+
+## v1 상태 (2026-08-01 초기 구축)
 
 - ✅ 스킬 v1 구축 완료. 스모크 테스트(합성 클립으로 assemble.py 전체 실행) 통과.
 - ✅ 사용자 제공 Paper Diorama 프롬프트 시스템(`drive-download-*` 폴더)을
@@ -38,3 +54,18 @@ Vox 스타일 애니메이션 저널리즘 영상을 완전 자동 생성하는 
 - **Kie.ai 세부**: 통합 Jobs API 사용. duration 타입이 모델별로 다름(Omni는
   문자열, Seedance는 정수). 로컬 이미지는 kieai.redpandaai.co 무료 임시
   호스팅(base64 업로드)으로 URL화.
+
+## v0.2.0 마이그레이션 결정 (2026-08-01)
+
+- **Gemini TTS는 타임스탬프 미지원** → 로컬 MLX Whisper(word_timestamps) +
+  대본 정본 정렬로 해결. 정렬은 문자 단위 SequenceMatcher 방식(한국어
+  띄어쓰기 차이에 강함), 미매칭 단어는 이웃 사이 보간. 참고 프로젝트
+  26_vox_style_video의 정렬 설계를 단순화해 채택.
+- **이미지 구독 OAuth 경로**: `~/.codex/skills/imagegen`(OPENAI_API_KEY 요구
+  스킬)이 아니라 Codex CLI **내장** `image_generation` 기능(stable)을 사용.
+  `codex exec -i <스타일시트> -- "<프롬프트>"` 형태. `--` 없이는 -i가
+  프롬프트를 삼키는 버그 있음 (수정 반영).
+- **영상은 Veo가 아닌 Omni Flash 유지** (사용자 결정) → Omni Flash는 Gemini
+  API에 없어 Kie.ai 경유가 계속 필요, KIE_API_KEY 유지.
+- 의존성은 프로젝트 `.venv`(requirements.txt: requests, python-dotenv,
+  mlx-whisper). Whisper 모델은 ~/.cache/huggingface의 기존 스냅샷 재사용.

@@ -1,36 +1,36 @@
 #!/usr/bin/env python3
-"""Generate a clip image with GPT Image 2 (image-to-image) using the style reference.
+"""Generate a clip image via Codex CLI's built-in image generation (ChatGPT 구독 OAuth).
+
+No API key needed — requires `codex login` with a ChatGPT Plus+ account.
+The style reference image is attached to the prompt; gpt-image-2 uses it as a
+style guide.
 
 Usage:
-  python3 gen_image.py --prompt-file prompt.txt --style-url <URL> --out clip1.png
-  python3 gen_image.py --prompt "..." --style-ref assets/style_reference.png --out clip1.png
-
-The style reference is always passed as the input image; upload it once with
-upload.py and reuse --style-url across clips to avoid repeated uploads.
+  python3 gen_image.py --prompt-file prompt.txt --style-ref assets/style_reference.png --out clip1.png
 """
 import argparse
 import json
+import os
+import subprocess
 import sys
+from pathlib import Path
 
-from dotenv import load_dotenv
+WRAPPER = """Use your built-in native image generation tool (NOT the imagegen skill, NOT any external API or API key). Generate ONE 16:9 landscape image and save the image file as {name} in the current working directory. Do nothing else — no extra files, no commentary beyond confirming the save.
 
-import kie_common
+The attached image is a master style sheet: use it for materials and visual language only, never copy its board layout.
 
-MODEL = "gpt-image-2-image-to-image"
+Image prompt:
+{prompt}"""
 
 
 def main():
-    load_dotenv()
     p = argparse.ArgumentParser()
     g = p.add_mutually_exclusive_group(required=True)
     g.add_argument("--prompt")
     g.add_argument("--prompt-file")
-    s = p.add_mutually_exclusive_group(required=True)
-    s.add_argument("--style-url")
-    s.add_argument("--style-ref")
+    p.add_argument("--style-ref", required=True)
     p.add_argument("--out", required=True)
-    p.add_argument("--aspect", default="16:9")
-    p.add_argument("--resolution", default="1K", choices=["1K", "2K", "4K"])
+    p.add_argument("--timeout", type=int, default=420)
     args = p.parse_args()
 
     prompt = args.prompt
@@ -38,19 +38,41 @@ def main():
         with open(args.prompt_file, encoding="utf-8") as f:
             prompt = f.read().strip()
 
-    style_url = args.style_url or kie_common.upload_file(args.style_ref)
+    style_ref = Path(args.style_ref).resolve()
+    if not style_ref.is_file():
+        sys.exit(f"스타일 참조 이미지가 없습니다: {style_ref}")
+    out_path = Path(args.out).resolve()
+    out_path.parent.mkdir(parents=True, exist_ok=True)
 
-    payload = {
-        "prompt": prompt,
-        "input_urls": [style_url],
-        "aspect_ratio": args.aspect,
-        "resolution": args.resolution,
-    }
-    try:
-        out = kie_common.generate(MODEL, payload, args.out, timeout=600)
-    except kie_common.KieError as e:
-        sys.exit(f"이미지 생성 실패: {e}")
-    print(json.dumps({"out": out, "style_url": style_url}))
+    codex = os.environ.get("CODEX_BIN", "codex")
+    cmd = [
+        codex, "exec",
+        "--skip-git-repo-check",
+        "-s", "workspace-write",
+        "-C", str(out_path.parent),
+        "-i", str(style_ref),
+        # "--" 없이는 변수 개수 옵션인 -i가 프롬프트 인자까지 삼킨다
+        "--",
+        WRAPPER.format(name=out_path.name, prompt=prompt),
+    ]
+
+    last_err = None
+    for attempt in range(2):
+        try:
+            r = subprocess.run(cmd, capture_output=True, text=True, timeout=args.timeout)
+        except subprocess.TimeoutExpired:
+            last_err = f"codex exec 타임아웃 ({args.timeout}s)"
+            print(f"[image] {last_err} (시도 {attempt + 1})", file=sys.stderr)
+            continue
+        if out_path.is_file() and out_path.stat().st_size > 0:
+            print(json.dumps({"out": str(out_path)}, ensure_ascii=False))
+            return
+        tail = (r.stdout + r.stderr)[-800:]
+        last_err = f"이미지 파일이 생성되지 않음 (exit {r.returncode}): {tail}"
+        print(f"[image] 실패 (시도 {attempt + 1}): {last_err}", file=sys.stderr)
+    sys.exit(f"이미지 생성 실패: {last_err}\n"
+             "확인: `codex login status`가 ChatGPT 로그인 상태인지, "
+             "구독 사용량이 남아 있는지 점검하세요.")
 
 
 if __name__ == "__main__":

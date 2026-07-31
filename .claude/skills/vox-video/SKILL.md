@@ -20,11 +20,13 @@ description: Vox 스타일 애니메이션 저널리즘 영상을 완전 자동�
 
 ## 0. 사전 점검 (실패 시 즉시 사용자에게 안내하고 중단)
 
-- `.env`의 `ELEVENLABS_API_KEY`, `KIE_API_KEY`가 채워져 있는가
+- `.env`의 `GEMINI_API_KEY`(TTS), `KIE_API_KEY`(영상)가 채워져 있는가
+- `codex login status`가 ChatGPT 로그인 상태인가 (이미지 생성은 구독 OAuth 사용)
+- `.venv`가 존재하는가 — 없으면 `python3 -m venv .venv && .venv/bin/pip install -r requirements.txt`
 - `assets/style_reference.png`가 존재하는가 (모든 이미지 생성의 스타일 기준.
   기본으로 Vox 마스터 스타일 시트가 들어 있으며 사용자가 교체 가능)
 - `music/`에 음원이 있는가 — 없으면 "음악 없이 진행"을 알리고 계속한다
-- 스크립트 실행은 항상 프로젝트 루트에서: `python3 .claude/skills/vox-video/scripts/<이름>.py`
+- 스크립트 실행은 항상 프로젝트 루트에서: `.venv/bin/python3 .claude/skills/vox-video/scripts/<이름>.py`
 
 ## 1. 가이던스 해석 & 리서치
 
@@ -46,11 +48,15 @@ description: Vox 스타일 애니메이션 저널리즘 영상을 완전 자동�
 ## 3. 음성 생성 + 타임스탬프
 
 ```bash
-python3 .claude/skills/vox-video/scripts/tts.py --text-file output/<run>/ch1/script.txt --out-dir output/<run>/ch1
+.venv/bin/python3 .claude/skills/vox-video/scripts/tts.py --text-file output/<run>/ch1/script.txt --out-dir output/<run>/ch1
 ```
 
-- `narration.mp3`, `words.json`(단어별 start/end 초), 요약(총 길이)이 나온다.
+- 내부 동작: Gemini TTS로 음성 생성 → 로컬 MLX Whisper(large-v3-turbo)로 단어
+  타이밍 추출 → 대본(정본)에 정렬. `narration.mp3`, `words.json`(단어별
+  start/end 초), `asr.json`(진단용), 요약(총 길이·`alignment_ratio`)이 나온다.
 - 총 길이가 24초 미만/38초 초과면 대본을 조정해 재생성한다.
+- `alignment_ratio`가 0.8 미만이면 asr.json을 확인한다 — 발음이 뭉개진
+  구간이 있으면 대본 표현을 바꿔 재생성한다 (숫자·고유명사가 흔한 원인).
 
 ## 4. 클립 분할 (타임스탬프 기반 — 이 스킬의 핵심)
 
@@ -77,18 +83,21 @@ python3 .claude/skills/vox-video/scripts/tts.py --text-file output/<run>/ch1/scr
 `references/pipeline-rules.md`(이미지 프롬프트 구성·공인 규칙)를 **반드시
 읽고** 프롬프트를 작성한다.
 
+이미지는 **Codex CLI의 내장 이미지 생성(ChatGPT 구독 OAuth, gpt-image-2)**으로
+만든다. API 키·업로드 불필요 — 스타일 시트는 로컬 파일로 첨부된다.
+
 ```bash
-# 스타일 참조는 실행당 1회만 업로드
-python3 .claude/skills/vox-video/scripts/upload.py assets/style_reference.png
 # 클립마다 (프롬프트는 파일로 저장해두면 재현 가능)
-python3 .claude/skills/vox-video/scripts/gen_image.py --prompt-file output/<run>/ch1/clip1_img.txt --style-url <위 URL> --out output/<run>/ch1/clip1.png
+.venv/bin/python3 .claude/skills/vox-video/scripts/gen_image.py --prompt-file output/<run>/ch1/clip1_img.txt --style-ref assets/style_reference.png --out output/<run>/ch1/clip1.png
 ```
 
 - 이미지 프롬프트는 해당 클립의 나레이션 구간 텍스트를 근거로 작성하며,
   "Create ONE 16:9 scene frame, not a style board" 지시로 시작한다
   (pipeline-rules.md의 템플릿).
 - **공인 클립**: 눈 검은 바 + 원거리 구도 필수 (pipeline-rules.md 참조).
-- 여러 클립은 병렬로 생성해도 된다 (Bash run_in_background 활용).
+- 병렬 실행은 **동시 2개까지만** (이미지 생성은 ChatGPT 구독 사용량을
+  소모하므로 과도한 동시 실행을 피한다). 사용량 한도 초과로 실패하면
+  사용자에게 알리고 대기 후 재개한다.
 - 생성된 이미지를 Read로 열어 확인한다: 스타일 일치, 스타일 보드가 아닌 단일
   장면인지, 검은 바(공인), 텍스트 오염 여부. 문제 있으면 프롬프트 수정 후
   재생성 (클립당 최대 2회).
@@ -101,9 +110,9 @@ python3 .claude/skills/vox-video/scripts/gen_image.py --prompt-file output/<run>
 
 ```bash
 # 일반 클립 (이미지 = 참조)
-python3 .claude/skills/vox-video/scripts/gen_video.py --model omni --prompt-file output/<run>/ch1/clip1_vid.txt --image output/<run>/ch1/clip1.png --duration 4 --out output/<run>/ch1/clip1.mp4
+.venv/bin/python3 .claude/skills/vox-video/scripts/gen_video.py --model omni --prompt-file output/<run>/ch1/clip1_vid.txt --image output/<run>/ch1/clip1.png --duration 4 --out output/<run>/ch1/clip1.mp4
 # 공인 클립 (이미지 = 첫 프레임, 프롬프트에 실명 절대 금지)
-python3 .claude/skills/vox-video/scripts/gen_video.py --model seedance --prompt-file output/<run>/ch1/clip2_vid.txt --image output/<run>/ch1/clip2.png --duration 6 --out output/<run>/ch1/clip2.mp4
+.venv/bin/python3 .claude/skills/vox-video/scripts/gen_video.py --model seedance --prompt-file output/<run>/ch1/clip2_vid.txt --image output/<run>/ch1/clip2.png --duration 6 --out output/<run>/ch1/clip2.mp4
 ```
 
 - SHOT은 그 구간 나레이션이 말하는 내용을 시각화하고, 꼭 필요할 때만
@@ -131,7 +140,7 @@ python3 .claude/skills/vox-video/scripts/gen_video.py --model seedance --prompt-
 ```
 
 ```bash
-python3 .claude/skills/vox-video/scripts/assemble.py --manifest output/<run>/manifest.json --out output/<run>/final.mp4
+.venv/bin/python3 .claude/skills/vox-video/scripts/assemble.py --manifest output/<run>/manifest.json --out output/<run>/final.mp4
 ```
 
 - 자동 처리: 클립당 앞 0.25s 컷 → 정규화·연결 → 나레이션 구간을 각 클립
@@ -158,7 +167,10 @@ python3 .claude/skills/vox-video/scripts/assemble.py --manifest output/<run>/man
 
 ## 비용 주의
 
-클립 하나 = 이미지 1장 + 영상 1개 (Kie.ai 크레딧), 챕터당 나레이션 1회
-(ElevenLabs). 3~4챕터 실행은 크레딧을 상당히 소모하므로, 멀티 챕터 요청이
-아니면 기본 1챕터로 진행한다. 402(크레딧 부족) 발생 시 즉시 중단하고
-사용자에게 충전을 안내한다.
+- 영상: 클립 하나 = Kie.ai 크레딧 소모 (유일한 실질 과금). 402(크레딧 부족)
+  발생 시 즉시 중단하고 사용자에게 충전을 안내한다.
+- 이미지: ChatGPT 구독 사용량(5시간 윈도우)을 소모 — 텍스트 대비 3~5배
+  빠르게 차감되므로 불필요한 재생성을 피한다.
+- 나레이션: Gemini TTS 무료 티어로 충분. Whisper 정렬은 로컬(무료).
+- 3~4챕터 실행은 소모가 크므로, 멀티 챕터 요청이 아니면 기본 1챕터로
+  진행한다.
