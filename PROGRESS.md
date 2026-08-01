@@ -200,3 +200,34 @@ MG-SOFT3D)이 스타일은 전혀 다른데 **동일한 11슬롯 골격**을 공
 `{"out": ...}`이 찍혀 하마터면 그대로 영상화될 뻔했다. 호출 전 mtime을
 기록해 **파일이 실제로 갱신됐는지**까지 검사하도록 수정. 갱신되지 않았으면
 재시도하고, 끝내 실패하면 종료 코드로 알린다.
+
+### 완성 (2026-08-02)
+
+`output/20260802-melasma-causes/final.mp4` — 720×1280 세로, **41.9초**, 9클립,
+배경음악 없음(music/ 비어 있음). 동기화는 9개 구간 전부 프레임 추출로 검증했다
+("여성호르몬이"→호르몬 도킹, "뚫리면"→색소 낙하, "미백 성분이"→크림이 멈춤).
+Omni 44초 생성, 약 $4.5. 재생성 없이 9개 모두 1회 통과.
+
+**기미 묘사의 정답 구간을 찾았다.** 세 번의 시도로 좁혀진 결과:
+
+| 지시 | 결과 |
+|---|---|
+| "soft-edged brown patches" | 주근깨 (점이 흩뿌려짐) |
+| "one continuous soft-edged blotch, single unbroken stain" | 검은 마스크 (얼굴 절반이 균일하게 덮임) |
+| **"several separate patches of clearly different sizes and irregular shapes, scattered around the outer corners of the eyes, temples and cheekbones, some broad and darker, some small and faint, a few merging, asymmetric"** | **실제 기미** |
+
+즉 **점도 아니고 단일 덩어리도 아닌, 크기가 제각각인 불규칙한 얼룩 여러 개**가
+정답이다. "붉거나 주황 톤 금지 - 갈색"도 함께 넣어야 일광화상처럼 안 나온다.
+
+**훅 구도**: 강한 광각 + 눈높이 아래 로우앵글 + 3/4 측면 + 감정 있는 표정
+(눈썹 찌푸리고 곁눈질하는 "아 또 이러네" 얼굴)이 정면 대칭 증명사진보다
+훨씬 강했다. 어안 왜곡과 콧구멍 앙각은 AVOID로 막아야 한다.
+
+**모델 지정은 구체적으로**: "adult woman"은 서구권 패션모델로 나온다.
+"an ordinary Korean woman in her fifties, short dark permed hair, a warm
+everyday face - not a fashion model"처럼 국적·연령·헤어·"모델 아님"까지
+명시해야 의도한 인물이 나온다.
+
+**bash 타임아웃 주의**: gen_image.py는 시도당 7분 + 재시도라 최대 14분이다.
+foreground 8분 타임아웃으로 죽인 적이 있으니 이미지·영상 생성은 항상
+백그라운드로 돌린다.
