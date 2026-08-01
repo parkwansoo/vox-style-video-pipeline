@@ -109,6 +109,18 @@ description: Vox 스타일 애니메이션 저널리즘 영상을 완전 자동�
 .venv/bin/python3 .claude/skills/vox-video/scripts/gen_image.py --prompt-file output/<run>/ch1/clip1_img.txt --style-ref assets/style_reference.png --out output/<run>/ch1/clip1.png
 ```
 
+**세로(9:16) 스타일이면** 세 스크립트 모두에 비율을 넘긴다. 기본값은 16:9라
+가로 스타일에서는 아무것도 붙이지 않는다.
+
+| 단계 | 세로일 때 추가 |
+|---|---|
+| 이미지 | `--aspect 9:16` |
+| 영상 | `--aspect 9:16` |
+| 합본 | `--size 720x1280` |
+
+이미지 프롬프트의 첫 문장도 `Create ONE 9:16 scene frame...`으로 바꿔 쓴다
+(pipeline-rules.md 템플릿의 16:9 부분).
+
 - 이미지 프롬프트는 해당 클립의 나레이션 구간 텍스트를 근거로 작성하며,
   "Create ONE 16:9 scene frame, not a style board" 지시로 시작한다
   (pipeline-rules.md의 템플릿).

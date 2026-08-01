@@ -15,7 +15,11 @@ import subprocess
 import sys
 from pathlib import Path
 
-WRAPPER = """Use your built-in native image generation tool (NOT the imagegen skill, NOT any external API or API key). Generate ONE 16:9 landscape image and save the image file as {name} in the current working directory. Do nothing else — no extra files, no commentary beyond confirming the save.
+# 세로 스타일(9:16 숏폼)도 지원한다. 기본은 16:9이므로 옵션을 주지 않으면
+# 기존 호출과 완전히 동일하게 동작한다.
+ORIENTATION = {"16:9": "landscape", "9:16": "vertical portrait"}
+
+WRAPPER = """Use your built-in native image generation tool (NOT the imagegen skill, NOT any external API or API key). Generate ONE {aspect} {orientation} image and save the image file as {name} in the current working directory. Do nothing else — no extra files, no commentary beyond confirming the save.
 
 The attached image is a master style sheet: use it for materials and visual language only. Never copy its board layout, its sample words, or the specific props and subjects shown in it — those are samples, not content for this frame.
 
@@ -30,6 +34,8 @@ def main():
     g.add_argument("--prompt-file")
     p.add_argument("--style-ref", required=True)
     p.add_argument("--out", required=True)
+    p.add_argument("--aspect", default="16:9", choices=["16:9", "9:16"],
+                   help="세로 스타일이면 9:16 (기본 16:9)")
     p.add_argument("--timeout", type=int, default=420)
     args = p.parse_args()
 
@@ -53,7 +59,8 @@ def main():
         "-i", str(style_ref),
         # "--" 없이는 변수 개수 옵션인 -i가 프롬프트 인자까지 삼킨다
         "--",
-        WRAPPER.format(name=out_path.name, prompt=prompt),
+        WRAPPER.format(name=out_path.name, prompt=prompt,
+                       aspect=args.aspect, orientation=ORIENTATION[args.aspect]),
     ]
 
     last_err = None
