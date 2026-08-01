@@ -2,7 +2,6 @@
 
 ## 대기
 
-- [ ] 2026-08-01 mg-bodylab 스타일 시트 이미지 생성분을 styles/mg-bodylab/style_reference.png에 배치 (사용자가 경로 알려주기로 함)
 - [ ] 2026-08-01 mg-bodylab으로 영상 제작 시 클립 비율 9:16 지원 필요 — gen_video.py는 --aspect 옵션 있음, gen_image.py는 16:9 하드코딩 상태 확인 필요
 
 - [ ] 2026-08-01 클립 자체 오디오 볼륨(0.2) 청감 튜닝 — 첫 실전작에서 효과음이 잘 들리는지 확인 필요 — assemble.py
