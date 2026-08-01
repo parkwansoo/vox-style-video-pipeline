@@ -1,0 +1,60 @@
+{
+  "system_name": "MG-BODYLAB",
+  "reference_note": "레퍼런스 출처: Zack D. Films 영상 스타일 (사용자 확인). 이 필드는 기록용이며 생성 프롬프트에는 들어가지 않는다 — system_name은 관찰 기반 서술 이름을 쓴다.",
+  "series_type": "vertical human-body curiosity",
+  "surface": "seamless sky-blue studio cyclorama with a soft vertical gradient, no horizon or corners",
+  "mood": ["clinical", "curious", "hyper-close"],
+  "type_specimen": "H1 sample \"IF YOU SWALLOW THIS\" in heavy rounded sans caps with a thick dark outline; a caption sample \"natural oils\" in the same face, smaller, pinned to the lower third",
+  "type_quality": ["heavy", "outlined"],
+  "palette": [
+    {"name": "Cyclorama Blue", "hex": "#4B8CC6"},
+    {"name": "Skin Light", "hex": "#E9D3BF"},
+    {"name": "Skin Mid", "hex": "#C9A691"},
+    {"name": "Hair Umber", "hex": "#6E5846"},
+    {"name": "Caption White", "hex": "#FFFFFF"}
+  ],
+  "color_rules": "Cyclorama Blue is background only and never touches a subject; Caption White is type only; skin tones carry the midground",
+  "components": [
+    "a smooth-skinned 3D figure, centred to camera",
+    "a skin macro with visible pores and vellus hairs",
+    "a cutaway of skin layers with follicles, in wet pinks",
+    "a pair of hands entering frame to hold a prop",
+    "a plain everyday prop at real scale",
+    "a heavy white caption block with a dark outline"
+  ],
+  "construction_logic": "soft-lit 3D renders, smooth subsurface skin, rounded simplified anatomy, shallow macro depth of field",
+  "mini_scenes": [
+    "a figure centred on the cyclorama mid-reaction, caption across the lower third",
+    "a skin macro with one insect standing among the pores",
+    "a cutaway of skin layers with follicles descending"
+  ],
+  "motion_signature": [
+    "slow push-in on a reacting face",
+    "macro drift across a skin surface",
+    "a cutaway peels open to the layer beneath",
+    "a prop drops in and settles"
+  ],
+  "stage": "the persistent background world every clip lives on - a seamless sky-blue cyclorama, softly graded, evenly lit, empty and ready for figures and props to enter",
+  "finish": [
+    "soft even studio lighting",
+    "subsurface skin shading",
+    "shallow macro depth of field",
+    "no harsh shadows",
+    "no photographic grain",
+    "no visible horizon"
+  ],
+  "confidence": {
+    "palette": "high — extract_palette.py 실측. 살색 3단계 중 2개만 채택, 하늘색 2단계는 그라데이션으로 병합, 그림자색은 Hair Umber에 흡수",
+    "stage": "medium-high — 13장 중 9장에서 동일 배경. 나머지는 매크로라 배경이 화면 밖",
+    "construction_logic": "high — 12장 모두에서 동일한 렌더 특성",
+    "type_specimen": "high — 실제 관찰된 자막 문구 사용",
+    "motion_signature": "low — 정지 이미지에서 추론"
+  },
+  "rejected": [
+    "개미 / 유리병 / 스푼 / 나무 테이블 — 각 한 장에만 등장하는 소재",
+    "도시 빌딩·화염·폭발 배경 — 한 장뿐이고 시그니처 배경과 상반",
+    "티셔츠에 인쇄된 브랜드 로고 — 로고는 시각 시스템이 아니며 재현 대상이 아님",
+    "치과 매크로 이미지 1장(제3자 워터마크) — 렌더 계열이 달라 아웃라이어로 제외",
+    "Sky Wash #9CC9E9 / Deep Shadow #382B25 — 각각 배경 그라데이션·그림자 단계라 대표색에 병합"
+  ]
+}

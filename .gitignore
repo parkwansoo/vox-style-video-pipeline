@@ -22,6 +22,9 @@ drive-download-*/
 # Claude 로컬 설정
 .claude/settings.local.json
 
-# 사용자 레퍼런스 이미지 (스타일 시트 입력)
+# 레퍼런스 이미지 — 제3자 콘텐츠라 커밋하지 않는다 (로컬 보관만)
+# refs/ = 새 작업 인박스, styles/*/refs/ = 스타일별 보관
 refs/*
 !refs/.gitkeep
+styles/*/refs/*
+!styles/*/refs/.gitkeep

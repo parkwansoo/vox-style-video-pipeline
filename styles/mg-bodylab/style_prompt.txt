@@ -1,0 +1,17 @@
+MASTER STYLE SHEET - MG-BODYLAB visual system, one 16:9 reference board. A single polished art-direction sheet defining the visual language for a vertical human-body curiosity explainer series. Editorial grid, consistent margins, section labels. Baked-in typography is intentional here (this is a style guide).
+
+SURFACE & MOOD: seamless sky-blue studio cyclorama with a soft vertical gradient, no horizon or corners. Mood: clinical, curious, hyper-close.
+
+TYPE SPECIMEN PANEL: H1 sample "IF YOU SWALLOW THIS" in heavy rounded sans caps with a thick dark outline; a caption sample "natural oils" in the same face, smaller, pinned to the lower third. Typography heavy, outlined, no warped letters.
+
+PALETTE STRIP: labeled swatches - Cyclorama Blue #4B8CC6, Skin Light #E9D3BF, Skin Mid #C9A691, Hair Umber #6E5846, Caption White #FFFFFF. Cyclorama Blue is background only and never touches a subject; Caption White is type only; skin tones carry the midground.
+
+COMPONENT ZOO PANEL: a smooth-skinned 3D figure, centred to camera; a skin macro with visible pores and vellus hairs; a cutaway of skin layers with follicles, in wet pinks; a pair of hands entering frame to hold a prop; a plain everyday prop at real scale; a heavy white caption block with a dark outline. All share one construction logic: soft-lit 3D renders, smooth subsurface skin, rounded simplified anatomy, shallow macro depth of field.
+
+MINI-SCENE PANEL: 3 small example frames - (a) a figure centred on the cyclorama mid-reaction, caption across the lower third, (b) a skin macro with one insect standing among the pores, (c) a cutaway of skin layers with follicles descending. Same lighting and finish throughout.
+
+MOTION THUMBNAILS: 4 tiny storyboard frames with arrows only: slow push-in on a reacting face / macro drift across a skin surface / a cutaway peels open to the layer beneath / a prop drops in and settles.
+
+One panel shows THE STAGE: the persistent background world every clip lives on - a seamless sky-blue cyclorama, softly graded, evenly lit, empty and ready for figures and props to enter. No midground elements present in this panel.
+
+FINISH: soft even studio lighting, subsurface skin shading, shallow macro depth of field, no harsh shadows, no photographic grain, no visible horizon. No watermarks, no lorem ipsum, no unrelated logos, no random gibberish text - every visible word is one of the samples above.

@@ -17,6 +17,9 @@ description: Vox 스타일 애니메이션 저널리즘 영상을 완전 자동�
    직접 고른다.
 3. 공인(정치인 등 실존 유명 인물)이 나오는 클립은 별도 규칙(아래)을 따른다.
 4. 실행 산출물은 전부 `output/<YYYYMMDD-주제슬러그>/`에 남긴다 (재실행 시 재사용).
+   실행을 시작할 때 그 폴더에 `style.txt`를 만들어 사용한 스타일 이름을 적는다
+   (`cat assets/ACTIVE_STYLE > output/<run>/style.txt`) — 나중에 이 영상이 어떤
+   스타일이었는지 추적할 수 있어야 한다.
 
 ## 0. 사전 점검 (실패 시 즉시 사용자에게 안내하고 중단)
 
@@ -26,8 +29,13 @@ description: Vox 스타일 애니메이션 저널리즘 영상을 완전 자동�
   SSD 미연결이면 tts.py가 안내 메시지와 함께 실패하니 연결을 요청한다
 - `codex login status`가 ChatGPT 로그인 상태인가 (이미지 생성은 구독 OAuth 사용)
 - `.venv`가 존재하는가 — 없으면 `python3 -m venv .venv && .venv/bin/pip install -r requirements.txt`
-- `assets/style_reference.png`가 존재하는가 (모든 이미지 생성의 스타일 기준.
-  기본으로 Vox 마스터 스타일 시트가 들어 있으며 사용자가 교체 가능)
+- `assets/style_reference.png`가 존재하는가 (모든 이미지 생성의 스타일 기준).
+  이 파일은 **현재 활성 스타일**의 복사본이며, 어떤 스타일인지는
+  `assets/ACTIVE_STYLE`에 적혀 있다. 스타일 원본과 주의사항은
+  `styles/<그 이름>/NOTES.md`에 있으니 **작업 전에 읽는다** — 특히 그 스타일이
+  세로 9:16용이면 클립 생성 비율을 바꿔야 한다 (`--aspect 9:16`)
+- 다른 스타일로 만들고 싶다는 요청이 있으면 `styles/`의 목록을 보여주고
+  전환 여부를 확인한다. 새 스타일을 만들어야 하면 `/style-sheet` 스킬을 쓴다
 - `music/`에 음원이 있는가 — 없으면 "음악 없이 진행"을 알리고 계속한다
 - 스크립트 실행은 항상 프로젝트 루트에서: `.venv/bin/python3 .claude/skills/vox-video/scripts/<이름>.py`
 

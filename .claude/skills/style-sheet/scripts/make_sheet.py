@@ -69,6 +69,36 @@ def format_palette(palette):
     return ", ".join(p for p in parts if p)
 
 
+# 기존 3종(MG-SOFT3D 1782 / MG-BLUEPRINT 1885 / Vox 2258)의 실측 범위.
+# 크게 넘으면 시트가 아니라 설명서가 되고 있다는 신호다.
+LENGTH_CEILING = 2400
+
+
+def lint(dna, prompt):
+    """Warn about the drift modes that make a sheet balloon into prose."""
+    warn = []
+    palette = dna.get("palette")
+    if isinstance(palette, list) and len(palette) > 5:
+        warn.append(f"팔레트가 {len(palette)}색입니다 (권장 2~5). "
+                    "명도만 다른 인접 색은 대표색으로 병합하세요.")
+    if "mood" in str(dna.get("surface", "")).lower():
+        warn.append("surface에 'Mood'가 들어 있습니다 — 템플릿이 Mood를 따로 붙이므로 "
+                    "출력에 중복됩니다. surface에서 빼세요.")
+    for key in ("components", "mini_scenes", "finish"):
+        val = dna.get(key)
+        if isinstance(val, list):
+            longest = max((len(str(v)) for v in val), default=0)
+            if longest > 90:
+                warn.append(f"{key}의 한 항목이 {longest}자입니다 — 기존 시트는 짧은 "
+                            "명사구입니다. 설명문이 되지 않게 줄이세요.")
+    if len(prompt) > LENGTH_CEILING:
+        warn.append(f"프롬프트가 {len(prompt)}자입니다 (기존 3종은 1782~2258자). "
+                    "슬롯을 더 압축하세요.")
+    for w in warn:
+        print(f"[경고] {w}", file=sys.stderr)
+    return warn
+
+
 def build_prompt(dna):
     missing = [k for k in REQUIRED if not dna.get(k)]
     if missing:
@@ -136,6 +166,7 @@ def main():
 
     dna = json.loads(Path(args.dna).read_text(encoding="utf-8"))
     prompt = build_prompt(dna)
+    warnings = lint(dna, prompt)
 
     if args.out_prompt:
         Path(args.out_prompt).parent.mkdir(parents=True, exist_ok=True)
@@ -143,7 +174,7 @@ def main():
     else:
         print(prompt)
 
-    result = {"prompt_chars": len(prompt)}
+    result = {"prompt_chars": len(prompt), "warnings": len(warnings)}
     if args.out_prompt:
         result["prompt"] = args.out_prompt
     if args.render:
