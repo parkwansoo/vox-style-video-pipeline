@@ -49,6 +49,9 @@ def main():
         sys.exit(f"스타일 참조 이미지가 없습니다: {style_ref}")
     out_path = Path(args.out).resolve()
     out_path.parent.mkdir(parents=True, exist_ok=True)
+    # 재생성 시 이전 파일이 남아 있으면 "존재함"만으로는 성공을 판정할 수 없다.
+    # 생성이 거부·실패해도 낡은 이미지를 성공으로 보고하게 되기 때문이다.
+    mtime_before = out_path.stat().st_mtime if out_path.is_file() else None
 
     codex = os.environ.get("CODEX_BIN", "codex")
     cmd = [
@@ -72,8 +75,14 @@ def main():
             print(f"[image] {last_err} (시도 {attempt + 1})", file=sys.stderr)
             continue
         if out_path.is_file() and out_path.stat().st_size > 0:
-            print(json.dumps({"out": str(out_path)}, ensure_ascii=False))
-            return
+            if mtime_before is None or out_path.stat().st_mtime > mtime_before:
+                print(json.dumps({"out": str(out_path)}, ensure_ascii=False))
+                return
+            tail = (r.stdout + r.stderr)[-800:]
+            last_err = ("기존 파일이 갱신되지 않음 — 생성이 거부되었거나 다른 이름으로 "
+                        f"저장됐을 수 있습니다 (exit {r.returncode}): {tail}")
+            print(f"[image] 실패 (시도 {attempt + 1}): {last_err}", file=sys.stderr)
+            continue
         tail = (r.stdout + r.stderr)[-800:]
         last_err = f"이미지 파일이 생성되지 않음 (exit {r.returncode}): {tail}"
         print(f"[image] 실패 (시도 {attempt + 1}): {last_err}", file=sys.stderr)
