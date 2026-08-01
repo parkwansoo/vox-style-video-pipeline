@@ -7,7 +7,10 @@ Pipeline: ensure_tts.sh(백엔드 자동 기동) → POST /api/tts → narration
 
 20_숏츠 자동화 프로젝트의 TTS 구성을 이식: Gemini 음색 이름(Charon, Kore 등)을
 백엔드 프로필 id로 자동 변환하고, 톤 프롬프트로 화자 성격을 지정한다.
-API 키 불필요 — 외장 SSD(Samsung_T5)의 clone-voice 백엔드(8930)를 사용.
+외장 SSD(Samsung_T5)의 clone-voice 백엔드(8930)를 경유한다. 우리 .env에는 키가
+필요 없지만, 백엔드는 model_id="gemini"를 받아 **Google Gemini TTS 클라우드**
+(gemini-3.1-flash-tts-preview)로 합성한다 — 무료가 아니라 약 $0.03/분 과금이며
+비용은 clone-voice에 등록된 Google 계정에서 발생한다.
 
 Run with the project venv: .venv/bin/python3 (mlx-whisper required).
 
@@ -127,7 +130,16 @@ def main():
     p.add_argument("--tone", default=os.environ.get("VOX_TTS_TONE") or DEFAULT_TONE)
     p.add_argument("--base-url", default=os.environ.get("TTS_BASE_URL") or DEFAULT_BASE_URL)
     p.add_argument("--language", default="ko")
+    p.add_argument("--speed", type=float,
+                   default=float(os.environ.get("VOX_TTS_SPEED") or 1.0),
+                   help="재생 배속. 스타일에 맞춰 지정 (숏폼 1.3, 다큐 1.0). "
+                        "배속은 Whisper 분석 전에 적용되므로 words.json이 이미 "
+                        "배속된 시간축으로 나오고, 이후 단계는 손댈 필요가 없다")
     args = p.parse_args()
+
+    # ffmpeg atempo의 단일 필터 유효 범위
+    if not 0.5 <= args.speed <= 2.0:
+        sys.exit(f"--speed는 0.5~2.0 사이여야 합니다 (지정값: {args.speed})")
 
     with open(args.text_file, encoding="utf-8") as f:
         script = f.read().strip()
@@ -147,12 +159,14 @@ def main():
     wav_path = out_dir / "narration.wav"
     synthesize(tts_input, voice_id, args.tone, args.base_url, wav_path,
                language=args.language)
+    # 배속은 반드시 Whisper 분석 **전에** 적용한다. 그래야 단어 타임스탬프가
+    # 처음부터 배속된 시간축으로 나와 클립 분할·합본이 보정 없이 맞는다.
     audio_path = out_dir / "narration.mp3"
-    subprocess.run(
-        ["ffmpeg", "-y", "-v", "error", "-i", str(wav_path),
-         "-b:a", "160k", str(audio_path)],
-        check=True,
-    )
+    cmd = ["ffmpeg", "-y", "-v", "error", "-i", str(wav_path)]
+    if args.speed != 1.0:
+        cmd += ["-filter:a", f"atempo={args.speed}"]
+    cmd += ["-b:a", "160k", str(audio_path)]
+    subprocess.run(cmd, check=True)
     wav_path.unlink()
     duration = ffprobe_duration(audio_path)
 
@@ -197,6 +211,7 @@ def main():
         "word_count": len(words),
         "alignment_ratio": ratio,
         "voice": args.voice,
+        "speed": args.speed,
     }, ensure_ascii=False))
 
 
