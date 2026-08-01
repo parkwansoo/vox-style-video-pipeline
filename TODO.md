@@ -10,11 +10,16 @@
 - [ ] 2026-08-01 music/ 비어 있을 때 BGM 자동 생성 옵션 검토 (예: ElevenLabs Music API, Lyria 등) — assemble 단계
 - [ ] 2026-08-01 대본에 아라비아 숫자 표기 시 ASR 정규화 불일치("이십 퍼센트"↔"20%")로 정렬률 하락 — 대본 작성 규칙에 숫자 한글 표기 지침 추가 검토 — SKILL.md 2단계
 
+- [ ] 2026-08-02 SKILL.md 2단계 대본 분량표 실측 반영 — 1.3배속 실측 0.183초/음절이라 "185~220음절≈30초"는 과다. 30초=165음절 안팎, 완성길이=나레이션+클립여백(이번 6.7초) — SKILL.md
+- [ ] 2026-08-02 mg-bodylab NOTES.md에 권장 배속 1.3 기록 (현재 미기재라 매번 명령에 써야 함) — styles/mg-bodylab/NOTES.md
+- [ ] 2026-08-02 인물 이미지 착의 규칙을 pipeline-rules.md에 명문화 — 전신은 나체로 나오고, AVOID에 nudity류 단어를 넣으면 생성 거부됨. 흉상+긍정문 착의 지정이 정답 — references/pipeline-rules.md
+- [ ] 2026-08-02 mg-bodylab 스타일 자막(캡션) 사용 여부 결정 — 스타일 시그니처지만 한국어 나레이션과 언어가 어긋나고 오탈자 위험
 - [ ] 2026-08-01 style-sheet: 영상 레퍼런스(mp4) 입력 지원 검토 — 현재 모션 시그니처는 정지 이미지 추론이라 confidence low — .claude/skills/style-sheet/
 - [ ] 2026-08-01 style-sheet: k-means가 종이 톤 그라데이션을 여러 색으로 쪼개는 문제 — 색상환 거리 기반 자동 병합 검토 — scripts/extract_palette.py
 
 ## 완료
 
+- [x] 2026-08-02 gen_image.py 조용한 실패 수정 — 재생성 시 기존 파일이 남아 있으면 생성 거부돼도 성공 보고하던 문제 (mtime 검사 추가)
 - [x] 2026-08-01 vox-video 스킬 v1 구축 (스크립트 6종 + 가이드라인 2종 + SKILL.md)
 - [x] 2026-08-01 v0.2.0 마이그레이션: Gemini TTS + MLX Whisper 정렬, Codex 구독 OAuth 이미지 (c301957 이후)
 - [x] 2026-08-01 v0.3.0 참고 프로젝트 이식: TTS→로컬 clone-voice 백엔드(20 프로젝트), 영상→Gemini API omni flash 직접(26 프로젝트). 세 경로 실생성 검증
