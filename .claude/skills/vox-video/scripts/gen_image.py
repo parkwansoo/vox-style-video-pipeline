@@ -17,7 +17,7 @@ from pathlib import Path
 
 WRAPPER = """Use your built-in native image generation tool (NOT the imagegen skill, NOT any external API or API key). Generate ONE 16:9 landscape image and save the image file as {name} in the current working directory. Do nothing else — no extra files, no commentary beyond confirming the save.
 
-The attached image is a master style sheet: use it for materials and visual language only, never copy its board layout.
+The attached image is a master style sheet: use it for materials and visual language only. Never copy its board layout, its sample words, or the specific props and subjects shown in it — those are samples, not content for this frame.
 
 Image prompt:
 {prompt}"""
