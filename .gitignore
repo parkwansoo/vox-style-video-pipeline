@@ -1,30 +1,52 @@
-# 비밀 키
+# === 비밀 ===
 .env
+.env.*
+!.env.example
+*.key
+*.pem
+credentials*.json
 
-# 실행 산출물 (영상/이미지/음성)
+# === 실행 산출물 (영상·이미지·음성, 용량 큼) ===
 output/
 
-# 사용자 음원 (용량 큼, 개인 파일)
-music/*
-!music/.gitkeep
-
-# Python
-__pycache__/
-*.pyc
-.venv/
-
-# macOS
-.DS_Store
-
-# 사용자 원본 자료 (프로젝트에 복사본 반영됨)
-drive-download-*/
-
-# Claude 로컬 설정
-.claude/settings.local.json
-
-# 레퍼런스 이미지 — 제3자 콘텐츠라 커밋하지 않는다 (로컬 보관만)
+# === 제3자 콘텐츠 ===
+# 레퍼런스 이미지는 스타일 분석용으로 로컬 보관만 한다 (저작권)
 # refs/ = 새 작업 인박스, styles/*/refs/ = 스타일별 보관
 refs/*
 !refs/.gitkeep
 styles/*/refs/*
 !styles/*/refs/.gitkeep
+# 사용자 원본 자료 (프로젝트에 복사본 반영됨)
+drive-download-*/
+
+# === 사용자 개인 파일 ===
+music/*
+!music/.gitkeep
+
+# === Python ===
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# === 미디어 (실수 방지 — 산출물은 output/에만 둔다) ===
+# 스타일 시트 PNG는 프로젝트 산출물이라 예외로 커밋한다
+*.mp4
+*.wav
+*.mp3
+*.aiff
+
+# === 로그·임시 ===
+*.log
+*.tmp
+.*.tmp
+
+# === 에디터·OS ===
+.DS_Store
+.idea/
+.vscode/
+
+# === Claude Code 로컬 설정 (개인 권한 설정) ===
+.claude/settings.local.json
