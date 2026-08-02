@@ -172,7 +172,9 @@ def main() -> int:
     run_slug = run_dir.name
     jobs = [build_job(chapter_dir, run_slug, args.chapter, n, d) for n, d in specs]
 
-    out_dir = run_dir / "flow-browser-runs" / args.run_name
+    # 챕터마다 따로 준비하므로 경로에 챕터를 넣는다. 안 넣으면 ch2가 ch1의
+    # 매니페스트를 덮어쓰려다 fingerprint 불일치로 거부당한다.
+    out_dir = run_dir / "flow-browser-runs" / args.run_name / f"ch{args.chapter}"
     upload_dir = out_dir / "uploads"
     for job in jobs:
         image = job["image"]
