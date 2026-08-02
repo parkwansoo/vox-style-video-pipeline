@@ -23,6 +23,37 @@ AVOID: [해당 스타일의 AVOID 블록 그대로]
   자리에 있고, 클립 중 등장·변화할 요소(카운터 수치, 화살표, 스탬프)는 초기
   상태로. 영상 프롬프트가 그 변화를 서술한다.
 
+### 프레이밍 선택 — 정면은 기본값이 아니라 선택이다
+
+스타일 DNA에는 보통 "centred to camera" 같은 정면 서술이 박혀 있다(레퍼런스
+원본이 그렇기 때문). 그래서 구도를 따로 정하지 않으면 **모든 클립이 자동으로
+정면**이 된다. 클립마다 아래에서 하나를 골라 STILL에 명시한다.
+
+| 프레이밍 | 프롬프트 문구 | 어울리는 장면 | 함께 넣을 AVOID |
+|---|---|---|---|
+| SPEC FRONT | centred to camera at eye level, symmetrical | 구조·층·비교를 정확히 읽혀야 할 때 | — |
+| HERO LOW | wide-angle lens from below the eye line, camera close and tilted up, subject three-quarters to camera | 훅, 인물 등장, 감정 | fisheye or barrel distortion, stretched or bulging facial features, nostrils seen from underneath |
+| WORM DEPTH | from far below looking steeply up, the subject towering out of frame | 깊이, 압도되는 규모 | HERO LOW와 동일 |
+| OVERHEAD | looking straight down from directly above | 낙하·확산·퍼짐 | the subject flattening into a pattern, loss of depth cues |
+| MACRO DRIFT | macro-close on the surface, shallow depth of field | 질감·세포 | — |
+| TILTED | the frame rolled a few degrees off level | 이상 신호, 무너짐 | a strong dutch angle, a disorienting tilt |
+| SCALE CONTRAST | a small subject near the lens against something far larger behind it | 크기 대비 | — |
+
+**선택 규칙**
+
+- **내용이 정한다.** 구조를 설명하는 컷은 SPEC FRONT가 옳다. 해부 단면을
+  비틀면 뭘 보는지 안 읽혀 오히려 손해다.
+- **같은 프레이밍을 3클립 연속 쓰지 않는다.**
+- **첫 클립(훅)과 인물이 등장하는 클립은 SPEC FRONT를 기본값으로 쓰지
+  않는다.** 쓰려면 이유가 있어야 한다.
+
+마지막 클립에는 규칙을 두지 않는다 — 시리즈로 이어지는 영상이면 마지막 컷은
+결말이 아니라 다음 편으로 넘기는 컷이라 정면이 오히려 맞을 수 있다.
+
+프레이밍은 **강제가 아니라 메뉴**다. 이 파이프라인의 에너지는 앵글이 아니라
+움직임과 내용에서 나오므로, 다이내믹한 구도는 인물·훅·전환에 집중시키고
+설명 컷은 정면을 유지하되 영상 프롬프트에서 확실한 무브를 준다.
+
 ## 2. 나레이션 동기화 (최우선)
 
 - SHOT은 해당 클립 구간의 나레이션이 말하는 내용을 시각화한다. 프롬프트를
