@@ -32,88 +32,90 @@ Omni를 Gemini API 종량제 대신 **Google Flow 구독**으로 돌릴 때의 �
 `jobs.json`에는 한 줄로 정규화된 프롬프트, 이미지 SHA-256, 업로드용 고유
 파일명, 설정이 같은 작업을 묶은 `submission_order`가 들어 있다.
 
-## 1. 입력 경로 결정 — 먼저 시험한다
+## 1. 입력 경로 — claude-in-chrome (2026-08-02 실측 검증)
 
-Slate 편집기에 정확히 입력할 수 있는지가 이 절차의 성패를 가른다. **추측하지
-말고 버리는 문자열로 먼저 시험한다.** 크레딧은 들지 않는다.
+**MCP 도구를 쓰기 전에 `claude-in-chrome` 스킬을 먼저 호출한다.** 이걸 빼면
+확장이 연결되지 않는다.
 
-1. Flow 프롬프트 입력창에 `abc123` 을 입력해 본다.
-2. 실제 값을 읽어 대조한다.
+`tabs_context_mcp` → `navigate` 로 Flow 탭 하나를 잡고 끝까지 재사용한다.
+
+**입력은 `computer` 의 `type` 을 그대로 쓴다.** 실측 결과 1,520자 프롬프트가
+SHA-256까지 정확히 일치했고 줄바꿈·BOM 오염이 없었으며 생성 버튼도 활성화됐다.
+
+> 26번 프로젝트는 "Chrome CUA 일괄 입력 실패"를 기록했지만 그건 **Codex 확장**
+> 이야기다. claude-in-chrome은 깨끗하게 들어간다. 다만 Flow UI는 바뀌므로,
+> 아래 회귀 시험은 매 작업 시작 때 한 번 돌린다.
+
+### 회귀 시험 (크레딧 0원, 매번)
+
+1. 입력창에 `abc123` 을 입력한다.
+2. 실제 값을 읽어 대조한다. **`﻿`(BOM)와 zero-width를 걷어낸 뒤** 비교해야
+   한다 — Slate는 빈 노드 표시에 이 문자를 쓴다.
 
 ```javascript
-document.querySelector('[data-slate-editor="true"]').innerText
+document.querySelector('[data-slate-editor="true"]')
+  .innerText.replace(/[﻿​]/g, '').trim()
 ```
 
-3. `abc123` 과 **정확히** 같고 생성 버튼이 활성화되면 그 경로를 쓴다.
-   다르거나 안내 문구가 섞이면 그 경로를 버린다.
-4. 시험 후 `Meta+A` → `Backspace` 로 비운다.
+3. 정확히 `abc123` 이고 생성 버튼이 활성이면 통과다.
+4. `cmd+a` → 이어서 실제 프롬프트를 입력하면 덮어써진다.
 
-### 경로 A — claude-in-chrome (기본)
+### 폴백 — Codex Chrome 플러그인
 
-사용자의 실제 로그인 Chrome을 그대로 쓴다. 확장 연결이 필요하다
-(<https://claude.ai/chrome> 설치 후 Chrome 재시작, flow.google 사이트 권한 허용).
-
-- `tabs_context_mcp` → `navigate` 로 Flow 탭 하나를 잡고 끝까지 재사용한다.
-- 입력은 `computer` 의 `type` 을 쓰되 **반드시 위 시험을 통과한 뒤에만** 쓴다.
-  26번 프로젝트는 Chrome CUA 일괄 입력이 실패했다고 기록했다. 우리 확장은
-  구현이 다르므로 될 수도 있지만, 확인 전에는 실제 프롬프트를 넣지 않는다.
-- 이미지 첨부는 `find` 로 file input을 찾아 `file_upload` 에 `upload_path` 를
-  넘긴다. **파일 선택 버튼을 클릭하지 않는다** — OS 파일 선택창이 열리면
-  제어할 수 없다.
-- 상태 확인은 `read_page` 또는 `javascript_tool` 로 현재 카드만 읽는다.
-
-### 경로 B — Codex Chrome 플러그인 (폴백)
-
-경로 A의 시험이 실패하면 이쪽을 쓴다. 26번에서 **2,416자를 38ms에 정확히
-입력**한 실측 경로다.
-
-- Codex의 Chrome 확장이 탭 단위 Playwright 핸들(`flowTab.playwright`)을 준다.
-- 입력은 **첫 글자 `press` + 나머지 `type`** 혼합 방식이 기본이다.
+claude-in-chrome이 연결되지 않거나 회귀 시험이 깨질 때만 쓴다. 26번에서
+2,416자를 38ms에 입력한 경로이며, 첫 글자 `press` + 나머지 `type` 혼합 방식이다.
 
 ```javascript
 const slate = flowTab.playwright.locator('[data-slate-editor="true"]');
-if (await slate.count() !== 1) throw new Error("Slate 카운트 불일치");
-await slate.click();
 await slate.press(prompt[0]);
 await slate.type(prompt.slice(1));
 ```
 
-- 혼합 입력이 전문 일치나 버튼 활성화를 통과하지 못할 때만 문자별 `press`로
-  **한 번** 폴백한다.
-- 로컬 파일 업로드 전에 Codex Chrome 확장의 `Allow access to file URLs`를
-  확인한다. 파일 선택기가 멈췄다는 사실만으로 권한이 꺼졌다고 단정하지 않는다.
-
-두 경로 모두 **같은 `jobs.json` / `state.json`** 을 쓰므로, 중간에 경로를
-바꿔도 진행 상태가 이어진다.
+두 경로 모두 **같은 `jobs.json` / `state.json`** 을 쓰므로 중간에 바꿔도 진행이
+이어진다.
 
 ## 2. 설정 확인 (제출 직전, 매번)
 
 Flow UI는 바뀐다. 좌표나 버튼 순서를 고정하지 말고 **현재 화면을 읽어**
 다음이 실제로 맞는지 본다.
 
-| 항목 | 값 |
+설정 버튼(`동영상 · {duration}s crop_9_16 x1`)을 눌러 팝업을 연다. 실측 확인된
+선택지는 다음과 같다.
+
+| 항목 | 선택지 | 우리 값 |
+|---|---|---|
+| 미디어 | 이미지 / **동영상** | 동영상 |
+| 입력 모드 | 프레임 / **애셋** | **애셋** (프레임은 first/end 2장용) |
+| 비율 | **9:16** / 16:9 | 스타일에 맞춰 |
+| 모델 | 드롭다운 | **Omni Flash** |
+| 길이 | **4s / 6s** / 8s / 10s | job의 `provider_duration_sec` |
+| 출력 수 | **x1** / x2 / x3 / x4 | x1 |
+
+**크레딧이 팝업 하단에 표시된다** ("생성 시 N크레딧이 사용됩니다"). 실측값:
+
+| 길이 | 크레딧 |
 |---|---|
-| 미디어 | 동영상 |
-| 입력 모드 | 애셋 |
-| 비율 | 9:16 (가로 스타일이면 16:9) |
-| 모델 | Omni Flash |
-| 길이 | job의 `provider_duration_sec` (4 또는 6) |
-| 출력 수 | x1 |
+| 4s | 7 |
+| 6s | 10 |
+| 10s | 15 |
 
-설정 버튼 이름은 `동영상 · {duration}s crop_9_16 x1` 형태다. 매니페스트 값과
-화면이 다르면 **제출하지 않는다.**
+9클립(6s×4 + 4s×5) 영상 한 편이면 **75크레딧**이다.
 
-`submission_order`대로 처리하면 같은 길이끼리 묶여 설정 변경이 줄어든다.
+매니페스트 값과 화면이 다르면 **제출하지 않는다.** `submission_order`대로
+처리하면 같은 길이끼리 묶여 설정 변경이 줄어든다.
 
 ## 3. 애셋 첨부
 
-우리 파이프라인은 클립당 이미지 **한 장**이다.
+우리 파이프라인은 클립당 이미지 **한 장**이다. 애셋 1장으로 생성 버튼이
+활성화되는 것을 실측 확인했다.
 
 1. 입력창이 비어 있는지 확인한다.
-2. `add_2 만들기` 버튼을 연다.
-3. `jobs.json`의 `image.upload_path` 파일 하나를 올린다.
-4. `프롬프트에 추가` 후 첨부가 실제로 화면에 뜰 때까지 기다린다.
-5. **첨부 수가 정확히 1인지 확인한다.**
+2. `find` 로 페이지의 file input(`ref`)을 찾아 `file_upload` 에 `upload_path`
+   를 넘긴다. **파일 선택 버튼을 클릭하지 않는다** — OS 파일 선택창이 열리면
+   제어할 수 없다. 업로드는 먼저 미디어 라이브러리로 들어간다.
+3. 업로드가 끝나면 입력창의 `add_2 만들기`(+) 버튼을 눌러 애셋 선택창을 연다.
+4. 방금 올린 이미지를 고르고 **`프롬프트에 추가`** 를 누른다.
+5. **첨부 수가 정확히 1인지 확인한다** (입력창 안 썸네일 개수).
 
 같은 SHA의 이미지가 Flow 라이브러리에 이미 있으면 재업로드하지 않고
 `state.json`의 `asset_cache`에 기록해 재사용한다.
