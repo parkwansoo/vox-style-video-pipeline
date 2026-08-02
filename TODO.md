@@ -14,7 +14,8 @@
 - [x] 2026-08-02 mg-bodylab NOTES.md에 권장 배속 1.3 기록 (완료 섹션으로 이동)
 - [ ] 2026-08-02 피부 색소질환 묘사 프롬프트 정답을 pipeline-rules.md에 정리 — 점(주근깨)도 단일 덩어리(마스크)도 아닌 "크기 제각각 불규칙 얼룩 여러 개 + 갈색 명시"가 정답 (PROGRESS.md 2026-08-02 표 참조) — references/pipeline-rules.md
 - [ ] 2026-08-02 인물 지정 규칙 명문화 — "adult woman"은 서구 패션모델로 나옴. 국적·연령·헤어·"not a fashion model"까지 써야 함 — references/pipeline-rules.md
-- [ ] 2026-08-02 이미지·영상 생성은 항상 백그라운드 실행 (gen_image.py 최대 14분, foreground 8분 타임아웃에 죽은 사례) — SKILL.md 5·6단계
+- [ ] 2026-08-02 **검토 정지점 2곳(대본·이미지) 제거하고 완전 자동으로 되돌리기** — 대본·이미지 품질이 안정되면. 도입 이유는 아직 한 번에 통과하지 못하기 때문 — SKILL.md "검토 정지점" 절
+- [x] 2026-08-02 이미지·영상 생성은 항상 백그라운드 실행 — SKILL.md 5단계에 반영
 - [ ] 2026-08-02 인물 이미지 착의 규칙을 pipeline-rules.md에 명문화 — 전신은 나체로 나오고, AVOID에 nudity류 단어를 넣으면 생성 거부됨. 흉상+긍정문 착의 지정이 정답 — references/pipeline-rules.md
 - [ ] 2026-08-02 mg-bodylab 스타일 자막(캡션) 사용 여부 결정 — 스타일 시그니처지만 한국어 나레이션과 언어가 어긋나고 오탈자 위험
 - [ ] 2026-08-01 style-sheet: 영상 레퍼런스(mp4) 입력 지원 검토 — 현재 모션 시그니처는 정지 이미지 추론이라 confidence low — .claude/skills/style-sheet/
