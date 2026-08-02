@@ -204,6 +204,28 @@ description: Vox 스타일 애니메이션 저널리즘 영상을 완전 자동�
   (video-prompt-guidelines.md의 Sequencing 규칙).
 - 영상 생성은 수 분 걸린다. 여러 클립을 병렬(백그라운드)로 돌리고 폴링한다.
 
+### 생성 경로 선택 — API vs Flow 구독
+
+| 경로 | 언제 | 비용 |
+|---|---|---|
+| **Gemini API** (기본) | 30~40초 영상, 안정성 우선 | 초당 약 $0.10 (44초 ≈ $4.5) |
+| **Google Flow 브라우저** | 80초 이상 등 API 비용이 부담될 때 | 구독 할당량 |
+
+Flow 경로는 사용자가 **명시적으로 요청할 때만** 쓴다. 브라우저 자동화라
+API보다 취약하고 사람 개입이 필요하다. 절차는
+`references/flow-browser.md`를 **전부 읽고** 따른다 — Slate 편집기 입력,
+설정 검증, 진행 상태 판독에 실측으로 확인된 함정이 많다.
+
+```bash
+.venv/bin/python3 .claude/skills/vox-video/scripts/prepare_flow_jobs.py \
+  --run output/<run> --chapter 1 --clip 1:6 2:6 5:4 --run-name run-v01
+.venv/bin/python3 .claude/skills/vox-video/scripts/flow_state.py init \
+  --jobs output/<run>/flow-browser-runs/run-v01/jobs.json
+```
+
+어느 경로로 만들었든 산출물은 같은 `output/<run>/ch<N>/clipN.mp4`이므로
+7단계 합본은 동일하다.
+
 ## 7. 합본
 
 매니페스트를 작성하고 assemble.py를 실행한다.
