@@ -18,6 +18,9 @@ styles/*/refs/*
 !styles/*/refs/.gitkeep
 # 사용자 원본 자료 (프로젝트에 복사본 반영됨)
 drive-download-*/
+# 브랜드 제품 자산 (제3자 자산 + 공개 저장소라 로컬 보관만 한다)
+# 출처와 재취득 방법은 각 폴더의 SOURCE.md 참조
+assets/products/
 
 # === 사용자 개인 파일 ===
 music/*
