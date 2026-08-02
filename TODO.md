@@ -20,6 +20,10 @@
 - [ ] 2026-08-02 자막·타이틀 등 정보 레이어를 HyperFrames(HeyGen 오픈소스, HTML→MP4) 또는 Remotion으로 얹는 방안 검토 — 생성 모델은 텍스트 오탈자에 취약하지만 HTML은 오탈자가 원천적으로 없다. 생성 클립 위에 덧씌우는 용도이지 장면 생성 대체는 아님 — assemble 단계
 - [ ] 2026-08-02 광고 영상의 표현 제약 정리 — 브이지샷 제품 프로필은 "진피층 도달/흡수"를 의약품 오인 표현으로 금지하고 "각질층을 열어 속기미 뿌리까지 전달"을 안전 표현으로 지정한다. 그런데 시리즈1은 색소가 진피로 떨어진다는 서사라 광고 편에서 충돌한다. 이번(20260802-melasma-vgshot)은 사용자 지시로 그대로 진행했고, 추후 개선 논의 때 다시 꺼낸다
 - [ ] 2026-08-02 mg-bodylab 스타일 자막(캡션) 사용 여부 결정 — 스타일 시그니처지만 한국어 나레이션과 언어가 어긋나고 오탈자 위험
+- [ ] 2026-08-03 **제품 클로즈업 컷은 영상 프롬프트에도 라벨 문구를 반복한다** — ch2-clip6(CTA)에서 push-in 중 라벨이 `VO SHOT`/`50 ml`로 변형됐다. 같은 제품 고정 문구를 쓴 clip1·5는 멀쩡했고 차이는 카메라가 라벨로 접근하는지 여부였다. 이미지 프롬프트에만 라벨을 쓰면 영상화에서 무너진다 — references/pipeline-rules.md
+- [ ] 2026-08-03 flow-browser.md에 실전 발견 7가지 반영 — 편집화면 다운로드 아이콘 1클릭, 애셋 검색으로 선택, 창 크기 변동, 실패 재시도(무과금), JS 45초 CDP 타임아웃, 완료 판정 기준, 업로드 경로 제약. 상세는 PROGRESS.md 2026-08-03 표 — references/flow-browser.md
+- [ ] 2026-08-03 Flow 워터마크 대응 검토 — Pro 구독은 Visible watermarking을 못 끈다. 광고 용도면 후처리 제거나 자막·타이틀 레이어로 가리는 방안이 필요 — assemble 단계
+- [ ] 2026-08-03 prepare_flow_jobs.py 챕터별 경로 분리를 flow-browser.md 예시에 반영 — 출력이 `run-v01/ch<N>/jobs.json`으로 바뀌었다 (커밋 참조) — references/flow-browser.md
 - [ ] 2026-08-03 이미지 생성 시간이 프롬프트 길이에 비례하는지 검증 — 실측: 첨부1장·1.4k자 약 1분 / 첨부2장·3.0k자 4~7분 / 첨부2장·4.1k자 3분29초(재시도 3회는 7분 타임아웃). AVOID에 금지구를 덧붙일수록 길어지므로 중복 정리 기준이 필요 — scripts/gen_image.py, references/pipeline-rules.md
 - [ ] 2026-08-01 style-sheet: 영상 레퍼런스(mp4) 입력 지원 검토 — 현재 모션 시그니처는 정지 이미지 추론이라 confidence low — .claude/skills/style-sheet/
 - [ ] 2026-08-01 style-sheet: k-means가 종이 톤 그라데이션을 여러 색으로 쪼개는 문제 — 색상환 거리 기반 자동 병합 검토 — scripts/extract_palette.py
