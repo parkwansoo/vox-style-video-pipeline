@@ -559,3 +559,11 @@ test-A~D·test-interp(대체된 실험), flow-browser-runs 전체(업로드 사�
 
 열린 결정: ① vgshot 시트 채택(Codex 개선 렌더 vs 직접 생성본) 후 assets/
 활성 전환 ② test-E 압축 결과의 정식 final 승격 여부(다른 세션 담당).
+
+## 페이스오일 제품 에셋 추가 (2026-08-03)
+
+`assets/products/faceoil/` — vgshot과 동일 구조 (reference.png + SPEC.md +
+SOURCE.md). 레퍼런스는 사용자 지정 정면 누끼 컷(스튜디오누크_02), 실측
+전체 2.47:1이 생성팩트 문서 2.46과 일치. vgshot과 반대 속성(투명 유리·흰
+스티커 라벨·스포이드·오일 2/3 충전)이 많아 SPEC에 대비표를 넣었다.
+폴더는 gitignore 대상(제3자 브랜드 자산)이라 문서만 커밋된다.
