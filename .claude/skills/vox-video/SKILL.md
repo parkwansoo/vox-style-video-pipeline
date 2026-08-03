@@ -149,18 +149,21 @@ description: Vox 스타일 애니메이션 저널리즘 영상을 완전 자동�
 **음색은 `Charon` 고정이 기본이다** (남성 다큐 톤, 랜덤 선택 아님). 사용자가
 다른 목소리를 원하면 `--voice <이름>`으로 바꾼다. Gemini TTS가 지원하는 30종:
 
+괄호는 성별 (남/여).
+
 | 결 | 음색 |
 |---|---|
-| 정보 전달 | **Charon**(기본) · Rasalgethi · Sadaltager · Iapetus · Erinome |
-| 단단함 | Kore · Orus · Alnilam · Schedar · Gacrux |
-| 밝음·경쾌 | Zephyr · Autonoe · Puck · Laomedeia · Sadachbia · Fenrir |
-| 부드러움 | Achernar · Vindemiatrix · Algieba · Despina · Sulafat |
-| 편안함 | Callirrhoe · Umbriel · Zubenelgenubi · Aoede · Achird |
-| 개성 | Leda(젊음) · Enceladus(숨결) · Algenib(거칢) · Pulcherrima(직진) |
+| 정보 전달 | **Charon**(남·기본) · Rasalgethi(남) · Sadaltager(남) · Iapetus(남) · Erinome(여) |
+| 단단함 | Alnilam(남) · Schedar(남) · Kore(여) · Orus(여) · Gacrux(여) |
+| 밝음·경쾌 | Sadachbia(남) · Zephyr(여) · Autonoe(여) · Puck(여) · Laomedeia(여) · Fenrir(여) |
+| 부드러움 | Algieba(남) · Achernar(여) · Vindemiatrix(여) · Despina(여) · Sulafat(여) |
+| 편안함 | Umbriel(남) · Zubenelgenubi(남) · Callirrhoe(여) · Aoede(여) · Achird(여) |
+| 개성 | Enceladus(남·숨결) · Algenib(남·거칢) · Leda(여·젊음) · Pulcherrima(여·직진) |
 
-**쓸 수 있는 건 clone-voice 백엔드에 프리셋으로 등록된 것뿐이다.** 바꾸기 전에
-`tts.py --list-voices`로 실제 등록 목록을 확인한다. 없는 이름을 지정하면 합성이
-실패하며, 에러 메시지가 사용 가능한 목록을 알려준다.
+남성 12종 / 여성 18종. **2026-08-03 기준 30종 전부 clone-voice 백엔드에 프리셋이
+등록되어 있어 바로 쓸 수 있다.** 다만 백엔드 상태는 바뀔 수 있으므로, 바꾸기 전에
+`tts.py --list-voices`로 확인하는 편이 안전하다. 없는 이름을 지정하면 합성이
+실패하며 에러 메시지가 사용 가능한 목록을 알려준다.
 
 - 톤 프롬프트로 화자 성격을 따로 지정한다
   (.env `VOX_TTS_VOICE`/`VOX_TTS_TONE`으로 기본값 변경). 감정 비트가 필요한 대본이면
