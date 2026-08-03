@@ -1,0 +1,132 @@
+{
+  "images": [
+    "refs/스크린샷 2026-08-01 오후 6.16.31.png",
+    "refs/스크린샷 2026-08-01 오후 6.16.36.png",
+    "refs/스크린샷 2026-08-01 오후 6.16.40.png",
+    "refs/스크린샷 2026-08-01 오후 6.16.53.png",
+    "refs/스크린샷 2026-08-01 오후 6.16.58.png",
+    "refs/스크린샷 2026-08-01 오후 6.17.00.png",
+    "refs/스크린샷 2026-08-01 오후 6.17.17.png",
+    "refs/스크린샷 2026-08-01 오후 6.17.30.png",
+    "refs/스크린샷 2026-08-01 오후 6.17.52.png",
+    "refs/스크린샷 2026-08-01 오후 6.18.27.png",
+    "refs/스크린샷 2026-08-01 오후 6.42.00.png",
+    "refs/스크린샷 2026-08-01 오후 6.42.03.png",
+    "refs/스크린샷 2026-08-01 오후 6.42.24.png"
+  ],
+  "palette": [
+    {
+      "hex": "#6E5846",
+      "rgb": [
+        110,
+        88,
+        70
+      ],
+      "coverage": 0.1834,
+      "edge_ratio": 0.216,
+      "present_in": 13,
+      "of_images": 13,
+      "shared": true,
+      "luminance": 0.36,
+      "saturation": 0.363,
+      "suggested_role": "secondary accent"
+    },
+    {
+      "hex": "#9C7E6C",
+      "rgb": [
+        156,
+        126,
+        108
+      ],
+      "coverage": 0.1749,
+      "edge_ratio": 0.268,
+      "present_in": 13,
+      "of_images": 13,
+      "shared": true,
+      "luminance": 0.513,
+      "saturation": 0.306,
+      "suggested_role": "secondary accent"
+    },
+    {
+      "hex": "#4B8CC6",
+      "rgb": [
+        75,
+        140,
+        198
+      ],
+      "coverage": 0.1595,
+      "edge_ratio": 0.126,
+      "present_in": 9,
+      "of_images": 13,
+      "shared": true,
+      "luminance": 0.512,
+      "saturation": 0.621,
+      "suggested_role": "secondary accent"
+    },
+    {
+      "hex": "#E9D3BF",
+      "rgb": [
+        233,
+        211,
+        191
+      ],
+      "coverage": 0.1462,
+      "edge_ratio": 0.275,
+      "present_in": 11,
+      "of_images": 13,
+      "shared": true,
+      "luminance": 0.839,
+      "saturation": 0.179,
+      "suggested_role": "neutral"
+    },
+    {
+      "hex": "#C9A691",
+      "rgb": [
+        201,
+        166,
+        145
+      ],
+      "coverage": 0.1393,
+      "edge_ratio": 0.285,
+      "present_in": 13,
+      "of_images": 13,
+      "shared": true,
+      "luminance": 0.674,
+      "saturation": 0.278,
+      "suggested_role": "secondary accent"
+    },
+    {
+      "hex": "#382B25",
+      "rgb": [
+        56,
+        43,
+        37
+      ],
+      "coverage": 0.1086,
+      "edge_ratio": 0.155,
+      "present_in": 12,
+      "of_images": 13,
+      "shared": true,
+      "luminance": 0.178,
+      "saturation": 0.345,
+      "suggested_role": "secondary accent"
+    },
+    {
+      "hex": "#9CC9E9",
+      "rgb": [
+        156,
+        201,
+        233
+      ],
+      "coverage": 0.0881,
+      "edge_ratio": 0.102,
+      "present_in": 7,
+      "of_images": 13,
+      "shared": true,
+      "luminance": 0.761,
+      "saturation": 0.33,
+      "suggested_role": "secondary accent"
+    }
+  ],
+  "note": "shared=false 인 색은 그 이미지의 소재일 가능성이 큽니다. edge_ratio가 높고 coverage가 낮으면 선/스트로크 전용 색입니다. 명도만 다른 인접 색(예: 종이 톤의 밝은/중간/어두운 단계)은 k-means가 쪼갠 같은 계열이므로 한 색으로 병합해 해석하세요."
+}
