@@ -33,7 +33,7 @@ MINI-SCENE PANEL: 3 small example frames - (a) {scene_a}, (b) {scene_b}, (c) {sc
 
 MOTION THUMBNAILS: 4 tiny storyboard frames with arrows only: {motion}.
 {stage}
-FINISH: {finish}. No watermarks, no lorem ipsum, no unrelated logos, no random gibberish text - every visible word is one of the samples above."""
+FINISH: {finish}. No watermarks, no lorem ipsum, no unrelated logos, no random gibberish text - every visible word is either one of the samples above or a short editorial panel label naming that panel or component."""
 
 STAGE_LINE = ("\nOne panel shows THE STAGE: {stage}. "
               "No midground elements present in this panel.\n")
@@ -44,6 +44,8 @@ SUBJECTS_LINE = "\nSUBJECT THEMES: the sample subjects on this sheet relate to {
 RENDER_WRAPPER = """Use your built-in native image generation tool (NOT the imagegen skill, NOT any external API or API key). Generate ONE 16:9 landscape image and save the image file as {name} in the current working directory. Do nothing else.
 
 This is a single art-direction reference board — a style guide sheet with labelled panels, not a scene illustration. Render every panel and every labelled swatch described below, and print the sample words exactly as written.
+
+When you call the image generation tool, pass the ENTIRE prompt below to it VERBATIM as the tool's prompt. Do not paraphrase, summarize, shorten, reorder, or add constraints of your own — the agent that rewrote this prompt previously caused missing panel labels.
 
 {prompt}"""
 
@@ -74,7 +76,8 @@ def format_palette(palette):
 
 # 기존 3종(MG-SOFT3D 1782 / MG-BLUEPRINT 1885 / Vox 2258)의 실측 범위.
 # 크게 넘으면 시트가 아니라 설명서가 되고 있다는 신호다.
-LENGTH_CEILING = 2400
+# 2026-08-03: FINISH에 패널 라벨 허용 문구(+71자)를 넣으며 상한도 같이 올림.
+LENGTH_CEILING = 2480
 
 
 def lint(dna, prompt):

@@ -16,4 +16,4 @@ MOTION THUMBNAILS: 4 tiny storyboard frames with arrows only: slow push-in on a 
 
 One panel shows THE STAGE: the persistent background world every clip lives on - a seamless sky-blue cyclorama, softly graded, evenly lit, empty and ready for figures and props to enter. No midground elements present in this panel.
 
-FINISH: soft even studio lighting, subsurface skin shading, shallow macro depth of field, no harsh shadows, no photographic grain, no visible horizon. No watermarks, no lorem ipsum, no unrelated logos, no random gibberish text - every visible word is one of the samples above.
+FINISH: soft even studio lighting, subsurface skin shading, shallow macro depth of field, no harsh shadows, no photographic grain, no visible horizon. No watermarks, no lorem ipsum, no unrelated logos, no random gibberish text - every visible word is either one of the samples above or a short editorial panel label naming that panel or component.
