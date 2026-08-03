@@ -546,3 +546,16 @@ exec 에이전트(gpt-5.6-sol)가 프롬프트를 image_gen(gpt-image-2) 도구�
 
 운영 결정(사용자): 시트는 앞으로 **Codex 자동 렌더 + 사용자 직접 생성을
 병행**해 비교 후 채택한다. 직접생성용 프롬프트 2종에도 같은 개선이 반영됨.
+
+## 산출물 정리 — 보존 정책 확정 (2026-08-03)
+
+사용자 승인 하에 output/ 를 "최종 + 원본 + 마지막 작업"만 남기고 정리했다
+(390MB → 178MB). 보존: 각 프로젝트의 final.mp4, ch1/ch2 원본,
+manifest·plan·style·_split 기록, 그리고 무음 압축 실험의 최신본인
+test-E(압축 적용 final 포함)와 test-audio(3방식 청감 비교). 삭제:
+test-A~D·test-interp(대체된 실험), flow-browser-runs 전체(업로드 사본 —
+원본은 ch폴더, 과정은 본 문서에 기록), 검수용 _*.png 격자 16개(final에서
+재추출 가능), mg-bodylab의 오전 주제 테스트 2개(mg-bodylab-vgshot으로 대체).
+
+열린 결정: ① vgshot 시트 채택(Codex 개선 렌더 vs 직접 생성본) 후 assets/
+활성 전환 ② test-E 압축 결과의 정식 final 승격 여부(다른 세션 담당).
