@@ -3,6 +3,7 @@
 and word timestamps via local MLX Whisper.
 
 Pipeline: ensure_tts.sh(백엔드 자동 기동) → POST /api/tts → narration.mp3
+        → 무음 압축(문장 경계 판정을 위해 1차 정렬을 먼저 돈다)
         → mlx-whisper (word_timestamps) → 대본 정렬 → words.json
 
 20_숏츠 자동화 프로젝트의 TTS 구성을 이식: Gemini 음색 이름(Charon, Kore 등)을
@@ -20,10 +21,12 @@ Usage:
   .venv/bin/python3 tts.py --text-file script.txt --tagged-file script-tagged.txt --out-dir ...
 
 Outputs in --out-dir:
-  narration.mp3   the narration audio
-  asr.json        raw Whisper word timings (diagnostic)
-  words.json      [{"word": ..., "start": ..., "end": ...}, ...] aligned to script
-Prints a JSON summary (duration, word count, alignment_ratio) to stdout.
+  narration.mp3     the narration audio (pauses compressed unless disabled)
+  narration_raw.mp3 pre-compression audio, kept for diagnosis
+  asr.json          raw Whisper word timings (diagnostic)
+  words.json        [{"word": ..., "start": ..., "end": ...}, ...] aligned to script
+Prints a JSON summary (duration, word count, alignment_ratio, silence_compression)
+to stdout.
 """
 import argparse
 import json
@@ -37,6 +40,7 @@ import requests
 from dotenv import load_dotenv
 
 from align_words import align
+from compress_silence import PRESETS, TAGGED_THRESHOLD, compress
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 DEFAULT_BASE_URL = "http://127.0.0.1:8930"
@@ -120,6 +124,31 @@ def ffprobe_duration(path):
     return float(out)
 
 
+def transcribe(audio_path, language):
+    """Local MLX Whisper pass. Returns (word timings, recognized text)."""
+    try:
+        import mlx_whisper
+    except ImportError:
+        sys.exit("mlx-whisper가 없습니다. 프로젝트 루트에서 실행: "
+                 "python3 -m venv .venv && .venv/bin/pip install -r requirements.txt "
+                 "(이 스크립트는 .venv/bin/python3 로 실행해야 합니다)")
+    result = mlx_whisper.transcribe(
+        str(audio_path),
+        path_or_hf_repo=resolve_whisper_model(),
+        language=language,
+        word_timestamps=True,
+        condition_on_previous_text=False,
+    )
+    words = []
+    for seg in result.get("segments", []):
+        for w in seg.get("words") or []:
+            text = str(w.get("word", "")).strip()
+            if text:
+                words.append({"text": text, "start": float(w["start"]),
+                              "end": float(w["end"])})
+    return words, str(result.get("text", "")).strip()
+
+
 def main():
     load_dotenv()
     p = argparse.ArgumentParser()
@@ -135,6 +164,22 @@ def main():
                    help="재생 배속. 스타일에 맞춰 지정 (숏폼 1.3, 다큐 1.0). "
                         "배속은 Whisper 분석 전에 적용되므로 words.json이 이미 "
                         "배속된 시간축으로 나오고, 이후 단계는 손댈 필요가 없다")
+    p.add_argument("--no-compress-silence", dest="compress_silence",
+                   action="store_false",
+                   help="무음 압축을 끈다. 기본은 켜짐 — 나레이션의 27~32%%가 "
+                        "무음이라, 줄이지 않으면 클립 길이가 침묵에 맞춰 잡힌다")
+    p.add_argument("--silence-preset", choices=sorted(PRESETS), default="sentence",
+                   help="압축 강도. sentence(기본)=문장 경계 0.45/내부 0.25, "
+                        "tight=0.35/0.20 — 훅이 중요한 빠른 전개용")
+    p.add_argument("--silence-sentence", type=float,
+                   help="문장 경계(마침표 뒤) 무음을 이만큼까지 남긴다 (프리셋 값 무시)")
+    p.add_argument("--silence-inner", type=float,
+                   help="문장 내부 호흡을 이만큼까지 남긴다 (프리셋 값 무시)")
+    p.add_argument("--silence-mincut", type=float,
+                   help="이보다 짧은 무음은 건드리지 않는다 (프리셋 값 무시)")
+    p.add_argument("--silence-threshold",
+                   help="무음 판정 볼륨 임계값 (기본 -35dB, --tagged-file을 쓰면 "
+                        f"한숨·추임새 보호를 위해 {TAGGED_THRESHOLD})")
     args = p.parse_args()
 
     # ffmpeg atempo의 단일 필터 유효 범위
@@ -170,31 +215,55 @@ def main():
     wav_path.unlink()
     duration = ffprobe_duration(audio_path)
 
-    # 2) MLX Whisper word timings (local, offline)
-    try:
-        import mlx_whisper
-    except ImportError:
-        sys.exit("mlx-whisper가 없습니다. 프로젝트 루트에서 실행: "
-                 "python3 -m venv .venv && .venv/bin/pip install -r requirements.txt "
-                 "(이 스크립트는 .venv/bin/python3 로 실행해야 합니다)")
-    result = mlx_whisper.transcribe(
-        str(audio_path),
-        path_or_hf_repo=resolve_whisper_model(),
-        language=args.language,
-        word_timestamps=True,
-        condition_on_previous_text=False,
-    )
-    asr_words = []
-    for seg in result.get("segments", []):
-        for w in seg.get("words") or []:
-            text = str(w.get("word", "")).strip()
-            if text:
-                asr_words.append({"text": text, "start": float(w["start"]), "end": float(w["end"])})
-    with open(out_dir / "asr.json", "w", encoding="utf-8") as f:
-        json.dump({"recognized_text": str(result.get("text", "")).strip(),
-                   "words": asr_words}, f, ensure_ascii=False, indent=1)
+    # 2) 무음 압축. 어떤 무음이 문장 사이인지는 대본으로만 알 수 있고(길이로는
+    #    갈리지 않는다 — 실측에서 문장 경계와 내부 호흡이 똑같이 0.59s였다),
+    #    대본과 오디오를 잇는 건 정렬이다. 그래서 1차 정렬로 문장 위치를 잡고,
+    #    압축한 뒤, 압축본으로 다시 정렬한다. Whisper는 로컬이라 한 번 더 도는
+    #    시간만 든다. 원본은 narration_raw.mp3로 남겨 진단에 쓴다.
+    compression = None
+    if args.compress_silence:
+        # 표현태그로 만든 한숨·추임새는 대본에 없는 소리라 정렬로 위치를 알 수
+        # 없다. 임계값을 낮춰 "소리" 쪽에 남기는 게 유일한 방어이며, 확실히
+        # 보존하려면 압축 자체를 꺼야 한다.
+        threshold = args.silence_threshold or (
+            TAGGED_THRESHOLD if args.tagged_file else "-35dB")
+        if args.tagged_file and not args.silence_threshold:
+            print(f"[정보] 표현태그 사용 — 한숨·추임새가 잘리지 않도록 무음 "
+                  f"임계값을 {threshold}로 낮춥니다. 확실히 보존하려면 "
+                  "--no-compress-silence를 쓰세요.", file=sys.stderr)
+        params = dict(PRESETS[args.silence_preset])
+        for key, val in (("sentence_keep", args.silence_sentence),
+                         ("inner_keep", args.silence_inner),
+                         ("mincut", args.silence_mincut)):
+            if val is not None:
+                params[key] = val
 
-    # 3) 대본(정본)에 Whisper 타이밍 정렬 — 태그본이 아니라 항상 원본 기준
+        draft_asr, _ = transcribe(audio_path, args.language)
+        draft_words, draft_ratio = align(script, draft_asr, duration)
+        if draft_ratio < 0.5:
+            print(f"[경고] 1차 정렬률 {draft_ratio:.0%} — 문장 경계를 신뢰할 수 "
+                  "없어 무음 압축을 건너뜁니다.", file=sys.stderr)
+        else:
+            raw_path = out_dir / "narration_raw.mp3"
+            audio_path.replace(raw_path)
+            compression = compress(raw_path, audio_path, draft_words,
+                                   threshold=threshold, **params)
+            compression["preset"] = args.silence_preset
+            duration = ffprobe_duration(audio_path)
+            print(f"[정보] 무음 압축 {compression['duration_before']}s → "
+                  f"{compression['duration_after']}s "
+                  f"(-{compression['removed_seconds']}s, "
+                  f"문장경계 {compression['at_sentence_end']} / "
+                  f"내부 {compression['inside_sentence']} / "
+                  f"무보정 {compression['left_untouched']})", file=sys.stderr)
+
+    # 3) MLX Whisper word timings (local, offline) — 압축했다면 압축본 기준
+    asr_words, recognized = transcribe(audio_path, args.language)
+    with open(out_dir / "asr.json", "w", encoding="utf-8") as f:
+        json.dump({"recognized_text": recognized, "words": asr_words},
+                  f, ensure_ascii=False, indent=1)
+
+    # 4) 대본(정본)에 Whisper 타이밍 정렬 — 태그본이 아니라 항상 원본 기준
     words, ratio = align(script, asr_words, duration)
     words_path = out_dir / "words.json"
     with open(words_path, "w", encoding="utf-8") as f:
@@ -212,6 +281,7 @@ def main():
         "alignment_ratio": ratio,
         "voice": args.voice,
         "speed": args.speed,
+        "silence_compression": compression,
     }, ensure_ascii=False))
 
 

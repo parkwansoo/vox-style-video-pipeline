@@ -73,13 +73,18 @@ description: Vox 스타일 애니메이션 저널리즘 영상을 완전 자동�
 
 ## 2. 챕터별 대본 작성
 
-- 챕터당 **완성 영상 기준 약 30초**가 되도록 쓴다. 배속을 쓰면 그만큼 대본이
-  길어져야 한다:
+- 챕터당 **완성 영상 기준 약 30초**가 되도록 쓴다. 아래는 3단계에서 자동
+  적용되는 무음 압축을 반영한 실측 기준이다:
 
-  | 배속 | 대본 분량 (한국어 음절) | 문장 수 |
-  |---|---|---|
-  | 1.0 (다큐) | 140~170음절 | 5~7문장 |
-  | 1.3 (숏폼) | 185~220음절 | 7~9문장 |
+  | 배속 | 대본 분량 (한국어 음절) | 문장 수 | 압축 후 나레이션 |
+  |---|---|---|---|
+  | 1.0 (다큐) | 125~140음절 | 5~7문장 | 약 25초 |
+  | 1.3 (숏폼) | 145~165음절 | 7~9문장 | 약 25초 |
+
+  **완성 길이 = 나레이션 + 클립 여백(보통 12~17%)**이라 30초를 노리면
+  나레이션을 25초 안팎으로 잡는다. 실측 환산율은 압축 후 1.0배속
+  **0.194초/음절**, 1.3배속 **0.167초/음절** (2026-08-03, 4챕터 443+134음절).
+  1.0배속은 표본이 1챕터뿐이라 참고치다.
 
   배속은 스타일에 맞춘다 — 차분한 다큐는 1.0, 빠른 숏폼은 1.3.
   활성 스타일의 `styles/<이름>/NOTES.md`에 권장 배속이 있으면 그것을 따른다.
@@ -98,6 +103,8 @@ description: Vox 스타일 애니메이션 저널리즘 영상을 완전 자동�
 .venv/bin/python3 .claude/skills/vox-video/scripts/tts.py --text-file output/<run>/ch1/script.txt --out-dir output/<run>/ch1
 # 숏폼 스타일이면 배속 지정
 .venv/bin/python3 .claude/skills/vox-video/scripts/tts.py --text-file output/<run>/ch1/script.txt --out-dir output/<run>/ch1 --speed 1.3
+# 훅 중심의 빠른 전개면 무음을 더 조인다
+.venv/bin/python3 .claude/skills/vox-video/scripts/tts.py --text-file output/<run>/ch1/script.txt --out-dir output/<run>/ch1 --speed 1.3 --silence-preset tight
 ```
 
 **배속은 이 단계에서만 지정하면 되고 뒤 단계는 손대지 않는다.** 배속이 Whisper
@@ -105,17 +112,44 @@ description: Vox 스타일 애니메이션 저널리즘 영상을 완전 자동�
 클립 분할·합본은 그 값을 그대로 쓴다. (실측: 1.0배속과 1.3배속의 정렬률이
 0.933으로 동일 — 배속이 인식 정확도를 떨어뜨리지 않는다)
 
+**무음은 자동으로 압축된다.** Gemini TTS는 나레이션의 27~32%를 침묵으로
+만드는데(3개 영상 공통, 실발화는 55~57%뿐), 이대로 두면 클립 길이가 말이 아니라
+침묵에 맞춰 잡힌다.
+
+| 프리셋 | 문장 경계 | 문장 내부 | 무보정 기준 | 쓰는 곳 |
+|---|---|---|---|---|
+| `sentence` (기본) | 0.45s | 0.25s | 0.20s | 일반 다큐·해설 |
+| `tight` | 0.35s | 0.20s | 0.15s | 훅이 중요한 빠른 전개 |
+
+`--silence-preset tight`으로 바꾸고, 개별 값은 `--silence-sentence`/
+`--silence-inner`/`--silence-mincut`으로 덮어쓴다. 아예 끄려면
+`--no-compress-silence`.
+
+**문장 경계와 내부를 구분하는 게 핵심이다.** 무음 길이만으로는 둘을 가를 수
+없어서(실측에서 문장 경계와 내부 호흡이 똑같이 0.59초였다) **대본으로
+판정**하며, 그래서 정렬을 두 번 돈다 — 1차로 문장 위치를 잡고, 압축하고,
+압축본으로 다시 정렬한다. 정렬률은 압축 전후가 동일하다(실측 1.0000 / 0.9044,
+프리셋·임계값 조합 8종 전부 유지).
+
+⚠ **표현태그(`--tagged-file`)를 쓸 때는 주의한다.** 태그로 만든 한숨·추임새는
+대본에 없는 소리라 정렬로 위치를 알 수 없고, 소리가 작으면 무음으로 잡혀
+잘려나간다. 태그본을 넘기면 무음 임계값이 자동으로 `-45dB`로 내려가 약한 발성이
+소리 쪽에 남지만(실측 제거량 4.63s→3.35s), **완전한 보장은 아니다.** 추임새가
+연출의 핵심이면 `--no-compress-silence`로 끄는 편이 안전하다.
+
 - 내부 동작: 로컬 clone-voice 백엔드(Gemini 음색, SSD 자동 기동)로 음성 생성
-  → 로컬 MLX Whisper(large-v3-turbo)로 단어 타이밍 추출 → 대본(정본)에 정렬.
-  `narration.mp3`, `words.json`(단어별 start/end 초), `asr.json`(진단용),
-  요약(총 길이·`alignment_ratio`)이 나온다.
+  → **무음 압축** → 로컬 MLX Whisper(large-v3-turbo)로 단어 타이밍 추출 →
+  대본(정본)에 정렬. `narration.mp3`(압축본), `narration_raw.mp3`(압축 전,
+  진단용), `words.json`(단어별 start/end 초), `asr.json`(진단용), 요약(총 길이·
+  `alignment_ratio`·`silence_compression`)이 나온다.
 - 음색 기본값은 Charon(남성 다큐 톤), 톤 프롬프트로 화자 성격을 지정한다
   (.env `VOX_TTS_VOICE`/`VOX_TTS_TONE`으로 변경). 감정 비트가 필요한 대본이면
   표현태그 삽입본을 `--tagged-file`로 따로 넘길 수 있다 (정렬은 항상 원본
   기준. 지원 태그 16종: [laughs] [giggles] [sighs] [gasp] [whispers] [excited]
   [amazed] [curious] [sarcastic] [serious] [shouting] [tired] [crying]
   [trembling] [mischievously] [panicked] — 다큐 톤에는 보통 불필요).
-- 총 길이가 24초 미만/38초 초과면 대본을 조정해 재생성한다.
+- 압축 후 총 길이가 20초 미만/32초 초과면 대본을 조정해 재생성한다 (압축 전
+  기준이던 24~38초를 실측 압축률 15.5%로 환산한 값).
 - `alignment_ratio`가 0.8 미만이면 asr.json을 확인한다 — 발음이 뭉개진
   구간이 있으면 대본 표현을 바꿔 재생성한다 (숫자·고유명사가 흔한 원인).
 
