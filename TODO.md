@@ -25,6 +25,10 @@
 - [ ] 2026-08-03 Flow 워터마크 대응 검토 — Pro 구독은 Visible watermarking을 못 끈다. 광고 용도면 후처리 제거나 자막·타이틀 레이어로 가리는 방안이 필요 — assemble 단계
 - [ ] 2026-08-03 prepare_flow_jobs.py 챕터별 경로 분리를 flow-browser.md 예시에 반영 — 출력이 `run-v01/ch<N>/jobs.json`으로 바뀌었다 (커밋 참조) — references/flow-browser.md
 - [ ] 2026-08-03 이미지 생성 시간이 프롬프트 길이에 비례하는지 검증 — 실측: 첨부1장·1.4k자 약 1분 / 첨부2장·3.0k자 4~7분 / 첨부2장·4.1k자 3분29초(재시도 3회는 7분 타임아웃). AVOID에 금지구를 덧붙일수록 길어지므로 중복 정리 기준이 필요 — scripts/gen_image.py, references/pipeline-rules.md
+- [ ] 2026-08-03 **나레이션 무음 압축 + 균일 배속 도입** — 완성본 59.2초 중 무음 19.05s(32.2%), 클립 여백 7.30s(12.3%). 무음만 자르면 4초 클립 하한 때문에 여백이 오히려 커진다(→16~22%). 무음 0.30초 유지 + 전 컷 균일 1.15~1.20x가 권장안(→약 46초). 측정 상세는 PROGRESS.md 2026-08-03 절 — scripts/assemble.py, SKILL.md 구간 배분
+- [ ] 2026-08-03 seg 경계 규칙 재검토 — `SKILL.md:137`의 "앞뒤 단어의 중간값"이 뒤 패딩 7.50s를 만든다. 긴 무음일수록 앞 컷 꼬리에 절반이 남는다. `seg_end = 마지막 단어 end + 0.15` 식으로 바꾸면 오디오 무손실로 회수 가능 — SKILL.md 3단계
+- [ ] 2026-08-03 회수한 6초의 용처 결정 — 영상을 짧게(59→46초) vs 같은 길이에 대사 추가. TODO 13번의 "30초=165음절"은 무음 포함 수치라 무음을 줄이면 음절을 더 담을 수 있다. 광고 편에서는 후자가 나을 수 있음
+- [ ] 2026-08-03 words.json은 무음 탐지에 못 쓴다는 점 명문화 — `align_words.py` 보간이 무음을 앞 단어 end에 흡수시켜 단어 gap이 2.82s로만 잡힌다(실제 파형 19.05s). 무음은 ffmpeg `silencedetect`로 재야 한다 — references/pipeline-rules.md
 - [ ] 2026-08-01 style-sheet: 영상 레퍼런스(mp4) 입력 지원 검토 — 현재 모션 시그니처는 정지 이미지 추론이라 confidence low — .claude/skills/style-sheet/
 - [ ] 2026-08-01 style-sheet: k-means가 종이 톤 그라데이션을 여러 색으로 쪼개는 문제 — 색상환 거리 기반 자동 병합 검토 — scripts/extract_palette.py
 
