@@ -146,8 +146,24 @@ description: Vox 스타일 애니메이션 저널리즘 영상을 완전 자동�
   대본(정본)에 정렬. `narration.mp3`(압축본), `narration_raw.mp3`(압축 전,
   진단용), `words.json`(단어별 start/end 초), `asr.json`(진단용), 요약(총 길이·
   `alignment_ratio`·`silence_compression`)이 나온다.
-- 음색 기본값은 Charon(남성 다큐 톤), 톤 프롬프트로 화자 성격을 지정한다
-  (.env `VOX_TTS_VOICE`/`VOX_TTS_TONE`으로 변경). 감정 비트가 필요한 대본이면
+**음색은 `Charon` 고정이 기본이다** (남성 다큐 톤, 랜덤 선택 아님). 사용자가
+다른 목소리를 원하면 `--voice <이름>`으로 바꾼다. Gemini TTS가 지원하는 30종:
+
+| 결 | 음색 |
+|---|---|
+| 정보 전달 | **Charon**(기본) · Rasalgethi · Sadaltager · Iapetus · Erinome |
+| 단단함 | Kore · Orus · Alnilam · Schedar · Gacrux |
+| 밝음·경쾌 | Zephyr · Autonoe · Puck · Laomedeia · Sadachbia · Fenrir |
+| 부드러움 | Achernar · Vindemiatrix · Algieba · Despina · Sulafat |
+| 편안함 | Callirrhoe · Umbriel · Zubenelgenubi · Aoede · Achird |
+| 개성 | Leda(젊음) · Enceladus(숨결) · Algenib(거칢) · Pulcherrima(직진) |
+
+**쓸 수 있는 건 clone-voice 백엔드에 프리셋으로 등록된 것뿐이다.** 바꾸기 전에
+`tts.py --list-voices`로 실제 등록 목록을 확인한다. 없는 이름을 지정하면 합성이
+실패하며, 에러 메시지가 사용 가능한 목록을 알려준다.
+
+- 톤 프롬프트로 화자 성격을 따로 지정한다
+  (.env `VOX_TTS_VOICE`/`VOX_TTS_TONE`으로 기본값 변경). 감정 비트가 필요한 대본이면
   표현태그 삽입본을 `--tagged-file`로 따로 넘길 수 있다 (정렬은 항상 원본
   기준. 지원 태그 16종: [laughs] [giggles] [sighs] [gasp] [whispers] [excited]
   [amazed] [curious] [sarcastic] [serious] [shouting] [tired] [crying]

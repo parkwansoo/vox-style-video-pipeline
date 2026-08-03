@@ -5,7 +5,7 @@
 - [ ] 2026-08-01 클립 자체 오디오 볼륨(0.2) 청감 튜닝 — 첫 실전작에서 효과음이 잘 들리는지 확인 필요 — assemble.py
 - [ ] 2026-08-01 SKILL.md 2단계에 "대본 32초/7문장 = 7클립" 가이드 반영 (37.8초→10클립 초과 사례) — SKILL.md
 - [ ] 2026-08-01 music/ 에 배경음악 mp3 추가 (현재 0곡이라 음악 없이 합본됨)
-- [ ] 2026-08-01 Gemini TTS 한국어 보이스 청감 비교 (Kore 기본, 후보 30종) 후 기본값 확정 — .env GEMINI_TTS_VOICE
+- [ ] 2026-08-01 Gemini TTS 한국어 보이스 청감 비교 (**기본은 Charon**, 후보 30종) 후 기본값 확정 — .env `VOX_TTS_VOICE` 또는 `tts.py --voice`. 목록은 `tts.py --list-voices`로 확인 (백엔드에 프리셋 등록된 것만 사용 가능). ※2026-08-03 정정: 기존 기록의 "Kore 기본 / GEMINI_TTS_VOICE"는 v0.3.0에서 clone-voice 백엔드로 갈아타기 전 정보라 실제와 달랐다
 - [ ] 2026-08-01 폴링 대신 callBackUrl 웹훅 방식 검토 (대량 생성 시 효율) — scripts/kie_common.py
 - [ ] 2026-08-01 music/ 비어 있을 때 BGM 자동 생성 옵션 검토 (예: ElevenLabs Music API, Lyria 등) — assemble 단계
 - [ ] 2026-08-01 대본에 아라비아 숫자 표기 시 ASR 정규화 불일치("이십 퍼센트"↔"20%")로 정렬률 하락 — 대본 작성 규칙에 숫자 한글 표기 지침 추가 검토 — SKILL.md 2단계

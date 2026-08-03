@@ -61,6 +61,32 @@ def ensure_backend():
                  + (r.stdout + r.stderr).strip()[-300:])
 
 
+def list_voices(base_url):
+    """백엔드에 실제 등록된 Gemini 음색 프리셋을 출력한다.
+
+    Gemini TTS 자체는 30종을 지원하지만, 쓸 수 있는 건 clone-voice 백엔드에
+    프리셋으로 등록된 것뿐이다. 없는 음색을 지정하면 합성이 실패하므로,
+    바꾸기 전에 이 목록으로 확인한다.
+    """
+    r = requests.get(f"{base_url}/api/voices", timeout=30)
+    r.raise_for_status()
+    data = r.json()
+    voices = data if isinstance(data, list) else data.get("voices", [])
+    rows = []
+    for v in voices:
+        preset = next((str(t).split(":", 1)[1] for t in (v.get("tags") or [])
+                       if str(t).startswith("gemini-voice:")), None)
+        if preset:
+            rows.append((preset, str(v.get("name") or "")))
+    if not rows:
+        print("등록된 Gemini 프리셋이 없습니다 — clone-voice 앱에서 생성하세요.",
+              file=sys.stderr)
+        return
+    print(f"등록된 Gemini 음색 {len(rows)}종 (--voice 로 지정):")
+    for preset, name in sorted(rows):
+        print(f"  {preset:<16} {name}")
+
+
 def resolve_voice_id(voice, base_url):
     """음색 이름(예: Charon) → 백엔드 프로필 id. 이미 id면 그대로."""
     if re.fullmatch(r"[0-9a-f]{32}", voice, re.IGNORECASE):
@@ -152,9 +178,12 @@ def transcribe(audio_path, language):
 def main():
     load_dotenv()
     p = argparse.ArgumentParser()
-    p.add_argument("--text-file", required=True, help="원본 대본 (정렬 정본)")
+    p.add_argument("--text-file", help="원본 대본 (정렬 정본)")
     p.add_argument("--tagged-file", help="표현태그 삽입본 (TTS 입력용, 없으면 원본 사용)")
-    p.add_argument("--out-dir", required=True)
+    p.add_argument("--out-dir")
+    p.add_argument("--list-voices", action="store_true",
+                   help="백엔드에 등록된 음색 프리셋을 출력하고 끝낸다 "
+                        "(--voice 로 지정할 수 있는 목록)")
     p.add_argument("--voice", default=os.environ.get("VOX_TTS_VOICE") or DEFAULT_VOICE)
     p.add_argument("--tone", default=os.environ.get("VOX_TTS_TONE") or DEFAULT_TONE)
     p.add_argument("--base-url", default=os.environ.get("TTS_BASE_URL") or DEFAULT_BASE_URL)
@@ -181,6 +210,13 @@ def main():
                    help="무음 판정 볼륨 임계값 (기본 -35dB, --tagged-file을 쓰면 "
                         f"한숨·추임새 보호를 위해 {TAGGED_THRESHOLD})")
     args = p.parse_args()
+
+    if args.list_voices:
+        ensure_backend()
+        list_voices(args.base_url)
+        return
+    if not args.text_file or not args.out_dir:
+        p.error("--text-file 과 --out-dir 이 필요합니다 (목록만 볼 때는 --list-voices)")
 
     # ffmpeg atempo의 단일 필터 유효 범위
     if not 0.5 <= args.speed <= 2.0:
