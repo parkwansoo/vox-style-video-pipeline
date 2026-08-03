@@ -26,7 +26,7 @@
 - [ ] 2026-08-03 이미지 생성 시간이 프롬프트 길이에 비례하는지 검증 — 실측: 첨부1장·1.4k자 약 1분 / 첨부2장·3.0k자 4~7분 / 첨부2장·4.1k자 3분29초(재시도 3회는 7분 타임아웃). AVOID에 금지구를 덧붙일수록 길어지므로 중복 정리 기준이 필요 — scripts/gen_image.py, references/pipeline-rules.md
 - [ ] 2026-08-03 **무음 압축 기본값(sentence 0.45/0.25/0.20) 청감 확인** — 수치는 실측 근거가 있지만 귀로는 아직 검증 안 됨. `output/20260802-melasma-vgshot/test-audio/`의 sentence/tight/uniform 3종 비교. 어색하면 `--silence-sentence` 등으로 조정 — scripts/compress_silence.py PRESETS
 - [ ] 2026-08-03 무음 압축을 실제 TTS 합성 경로로 E2E 검증 — 지금까지는 기존 나레이션으로 2패스 흐름만 재현했다(합성 단계 제외, 과금 회피). 다음 영상 제작 때 자연히 검증되며 `silence_compression` 요약을 확인하면 된다 — scripts/tts.py
-- [ ] 2026-08-03 컷별 배속 지원을 assemble.py에 추가할지 결정 — 순서 변경만으로 대부분 해결되므로 후순위. 필요하면 manifest clip에 선택적 `rate` 필드(없으면 1.0). `setpts`는 프레임을 버리므로(1.886x에서 48% 드롭) 1.4x 이상 쓸 거면 `minterpolate` 동반 필요 — scripts/assemble.py
+- [ ] 2026-08-03 배속 시 프레임 보간(`minterpolate`) 도입 검토 — 현재는 `setpts`만 써서 프레임을 버린다(1.886x에서 48% 드롭). 실측 배율 1.05~1.36 구간에서는 사용자가 "생동감 있다"고 판단해 보류. 큰 배율이 자주 나오면 재검토하며, 비용은 클립당 +7초 수준 — scripts/assemble.py
 - [ ] 2026-08-03 보이스·TTS배속 변경 시 무음 패턴 재검증 — 측정은 전부 Kore/1.3배속 기준. 정렬률 안전 마진은 크다(1.0/0.91) — TODO 8번과 함께 처리
 - [ ] 2026-08-03 seg 경계 규칙 재검토 (우선순위 하락) — `SKILL.md`의 "앞뒤 단어의 중간값"이 뒤 패딩을 만들었으나(압축 전 7.50s), 무음 압축이 들어가 무음 자체가 짧아졌으므로 영향이 작아졌다. 더 조이려면 `seg_end = 마지막 단어 end + 0.15` — SKILL.md 4단계
 - [ ] 2026-08-01 style-sheet: 영상 레퍼런스(mp4) 입력 지원 검토 — 현재 모션 시그니처는 정지 이미지 추론이라 confidence low — .claude/skills/style-sheet/

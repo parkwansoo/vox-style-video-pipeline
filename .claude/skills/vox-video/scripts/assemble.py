@@ -2,7 +2,8 @@
 """Assemble generated clips + narration + music into the final video.
 
 Pipeline:
-  1. Trim the first 0.25s off every clip, normalize (size/fps/codec/audio).
+  1. Trim the first 0.25s off every clip, speed it up to match its narration
+     segment, normalize (size/fps/codec/audio).
   2. Concatenate all clips in order.
   3. Audio mix: clip audio kept at low volume (sfx), each narration segment
      placed exactly at its clip's start offset (per-clip sync), one random
@@ -21,8 +22,10 @@ Manifest JSON format:
   ]
 }
 seg_start/seg_end are times in that chapter's narration.mp3 covering the words
-spoken during that clip. Segment length must not exceed the clip's effective
-length (4s clip → 3.75s, 6s clip → 5.75s after the 0.25s trim).
+spoken during that clip. A clip longer than its segment is sped up to fit
+(--no-fit-clips keeps the slack instead); a clip *shorter* than its segment
+cannot be fixed here — clips are never slowed down — so keep the segment within
+the clip's effective length (clip duration minus the 0.25s trim).
 
 Usage:
   python3 assemble.py --manifest manifest.json --out final.mp4 [--music-dir music]
@@ -70,6 +73,10 @@ def main():
     p.add_argument("--clip-volume", type=float, default=0.2)
     p.add_argument("--music-volume", type=float, default=0.15)
     p.add_argument("--narration-volume", type=float, default=1.0)
+    p.add_argument("--no-fit-clips", dest="fit_clips", action="store_false",
+                   help="클립을 나레이션 구간 길이에 맞추지 않는다 (여백을 그대로 둔다)")
+    p.add_argument("--max-rate", type=float, default=2.0,
+                   help="클립 맞춤 배속의 상한 (기본 2.0). 이 값에 걸리면 경고한다")
     p.add_argument("--keep-temp", action="store_true")
     args = p.parse_args()
 
@@ -81,24 +88,50 @@ def main():
     shutil.rmtree(tmp, ignore_errors=True)
     os.makedirs(tmp)
 
-    # 1) Trim + normalize every clip
-    norm_paths, durations = [], []
+    # 1) Trim + normalize every clip, fitting it to its narration segment.
+    #
+    # Generated clips only come in whole-second sizes (4s/5s/6s/7s depending on
+    # the platform) while narration segments land on arbitrary lengths like
+    # 3.7s or 5.7s. That mismatch is structural — no amount of clip-splitting
+    # makes them line up — so the leftover shows up as dead screen time at the
+    # end of every cut. Speeding each clip up to its own segment length removes
+    # that and, at the modest rates this produces, reads as extra energy rather
+    # than as fast-forward. Rates are per-clip: each cut is matched to the words
+    # it carries, not to a global average.
+    norm_paths, durations, rates = [], [], []
     vf = (
         f"scale={w}:{h}:force_original_aspect_ratio=decrease,"
         f"pad={w}:{h}:(ow-iw)/2:(oh-ih)/2,fps={args.fps},format=yuv420p"
     )
     idx = 0
-    for ch in manifest["chapters"]:
-        for clip in ch["clips"]:
+    for ci, ch in enumerate(manifest["chapters"], 1):
+        for si, clip in enumerate(ch["clips"], 1):
             src = clip["file"]
             if not os.path.exists(src):
                 sys.exit(f"클립 파일 없음: {src}")
+            eff = ffprobe_duration(src) - args.trim
+            seg = float(clip["seg_end"]) - float(clip["seg_start"])
+
+            rate = 1.0
+            if args.fit_clips and seg > 0.05 and eff > seg:
+                rate = min(eff / seg, args.max_rate)
+                if eff / seg > args.max_rate + 1e-6:
+                    print(
+                        f"[경고] ch{ci} clip{si}: 맞추려면 {eff / seg:.2f}x가 "
+                        f"필요한데 상한 {args.max_rate}x에 걸렸습니다. "
+                        f"{eff / rate - seg:.2f}s 여백이 남습니다.",
+                        file=sys.stderr,
+                    )
+
             dst = os.path.join(tmp, f"norm_{idx:02d}.mp4")
             cmd = ["ffmpeg", "-y", "-ss", str(args.trim), "-i", src]
-            if not has_audio(src):
+            src_has_audio = has_audio(src)
+            if not src_has_audio:
                 cmd += ["-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo", "-shortest"]
+            cmd += ["-vf", vf if rate == 1.0 else f"setpts=PTS/{rate:.5f},{vf}"]
+            if src_has_audio and rate != 1.0:
+                cmd += ["-af", f"atempo={rate:.5f}"]
             cmd += [
-                "-vf", vf,
                 "-c:v", "libx264", "-preset", "medium", "-crf", "18",
                 "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-ac", "2",
                 dst,
@@ -106,6 +139,7 @@ def main():
             run(cmd)
             norm_paths.append(dst)
             durations.append(ffprobe_duration(dst))
+            rates.append(round(rate, 3))
             idx += 1
 
     # 2) Concatenate
@@ -193,6 +227,7 @@ def main():
         "duration_seconds": round(ffprobe_duration(args.out), 2),
         "clip_count": len(durations),
         "clip_offsets": offsets,
+        "clip_rates": rates,
         "music": music_file,
     }, ensure_ascii=False))
 
