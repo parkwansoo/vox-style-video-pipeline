@@ -103,7 +103,7 @@ description: Vox 스타일 애니메이션 저널리즘 영상을 완전 자동�
 .venv/bin/python3 .claude/skills/vox-video/scripts/tts.py --text-file output/<run>/ch1/script.txt --out-dir output/<run>/ch1
 # 숏폼 스타일이면 배속 지정
 .venv/bin/python3 .claude/skills/vox-video/scripts/tts.py --text-file output/<run>/ch1/script.txt --out-dir output/<run>/ch1 --speed 1.3
-# 훅 중심의 빠른 전개면 무음을 더 조인다
+# 사용자가 "타이트하게/더 빠르게"를 요청했을 때만 (임의 판단 금지)
 .venv/bin/python3 .claude/skills/vox-video/scripts/tts.py --text-file output/<run>/ch1/script.txt --out-dir output/<run>/ch1 --speed 1.3 --silence-preset tight
 ```
 
@@ -121,9 +121,13 @@ description: Vox 스타일 애니메이션 저널리즘 영상을 완전 자동�
 | `sentence` (기본) | 0.45s | 0.25s | 0.20s | 일반 다큐·해설 |
 | `tight` | 0.35s | 0.20s | 0.15s | 훅이 중요한 빠른 전개 |
 
-`--silence-preset tight`으로 바꾸고, 개별 값은 `--silence-sentence`/
-`--silence-inner`/`--silence-mincut`으로 덮어쓴다. 아예 끄려면
-`--no-compress-silence`.
+**항상 `sentence`로 실행한다.** `tight`은 **사용자가 명시적으로 요청할 때만**
+쓴다("타이트하게", "더 빠르게", "훅 강하게", "tight으로" 등). 대본이 짧다거나
+광고편이라는 이유로 임의 판단하지 않는다 — 스타일 NOTES.md에 권장 배속이 있는
+것과 달리, 압축 강도는 사용자 결정 사항이다 (2026-08-03 사용자 지시).
+
+개별 값은 `--silence-sentence`/`--silence-inner`/`--silence-mincut`으로
+덮어쓴다. 아예 끄려면 `--no-compress-silence`.
 
 **문장 경계와 내부를 구분하는 게 핵심이다.** 무음 길이만으로는 둘을 가를 수
 없어서(실측에서 문장 경계와 내부 호흡이 똑같이 0.59초였다) **대본으로
