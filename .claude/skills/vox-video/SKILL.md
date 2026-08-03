@@ -62,11 +62,28 @@ description: Vox 스타일 애니메이션 저널리즘 영상을 완전 자동�
 - `music/`에 음원이 있는가 — 없으면 "음악 없이 진행"을 알리고 계속한다
 - 스크립트 실행은 항상 프로젝트 루트에서: `.venv/bin/python3 .claude/skills/vox-video/scripts/<이름>.py`
 
-## 1. 가이던스 해석 & 리서치
+## 1. 제작 사양 확정 & 리서치
 
-- 가이던스 프롬프트에서 스토리 주제와 챕터 수를 파악한다. 챕터 수 기본 1,
-  최대 4. 언어 기본 한국어(가이던스에서 지정 시 변경).
+**대본을 쓰기 전에 세 가지를 확정한다. 가이던스에서 추론해 단정하지 말고,
+AskUserQuestion 한 번으로 묶어 사용자에게 확인받는다** (2026-08-03 도입 —
+제품·스타일이 여럿이 되면서 암묵 추론이 사고 지점이 됐다):
+
+1. **주제·챕터 수** — 가이던스에서 읽은 해석을 요약해 보여주고 확인받는다.
+   챕터 수 기본 1, 최대 4. 언어 기본 한국어.
+2. **스타일** — `styles/`의 폴더들을 선택지로 나열한다. 현재
+   `assets/ACTIVE_STYLE`을 첫 번째(추천)로 표시한다. 다른 스타일이 선택되면
+   그 시트를 `assets/style_reference.png`로 복사하고 ACTIVE_STYLE을 갱신한다.
+3. **제품 (광고 편만)** — `assets/products/`의 제품들을 선택지로 나열한다.
+   가이던스에 제품명이 있으면 그 제품을 첫 번째(추천)로 표시하되, 묻지 않고
+   진행하지 않는다. 교양 편이면 "제품 없음"으로 확정한다. 확정된 제품의
+   `SPEC.md`가 5단계 제품 컷의 PRODUCT 블록·AVOID 출처이고, `SOURCE.md`가
+   가리키는 제품 프로필 문서(소구 포인트·필수 키워드·금지 표현)가 2단계
+   대본의 근거다.
+
+이후 리서치와 스토리 설계:
+
 - 웹 검색으로 리서치한다: 최신 전개, 핵심 수치, 대립 구도, 왜 지금 중요한가.
+  광고 편이면 제품 프로필 문서가 리서치의 출발점이다.
 - 스토리 각을 잡는다: Vox식 "흥미로운 질문 → 맥락 → 분석 → 시사점" 구조.
   멀티 챕터면 챕터들이 하나의 이해 가능한 이야기가 되도록 arc를 설계한다
   (예: 1장 현상 훅 / 2장 원인 / 3장 전망).
@@ -213,6 +230,15 @@ description: Vox 스타일 애니메이션 저널리즘 영상을 완전 자동�
 ```bash
 # 클립마다 (프롬프트는 파일로 저장해두면 재현 가능)
 .venv/bin/python3 .claude/skills/vox-video/scripts/gen_image.py --prompt-file output/<run>/ch1/clip1_img.txt --style-ref assets/style_reference.png --out output/<run>/ch1/clip1.png
+```
+
+**제품 컷이면** (1단계에서 확정한 제품이 화면에 나오는 클립) 제품 누끼를
+`--ref`로 함께 첨부하고, 그 제품 `assets/products/<제품>/SPEC.md`의 PRODUCT
+블록·AVOID 문구를 프롬프트에 넣는다. 스타일 시트가 항상 첫 번째 첨부다
+(상세: pipeline-rules.md "실제 제품이 등장하는 이미지").
+
+```bash
+.venv/bin/python3 .claude/skills/vox-video/scripts/gen_image.py --prompt-file ... --style-ref assets/style_reference.png --ref assets/products/<제품>/reference.png --out ...
 ```
 
 **세로(9:16) 스타일이면** 세 스크립트 모두에 비율을 넘긴다. 기본값은 16:9라
