@@ -42,7 +42,8 @@ mg-bodylab의 **주제 반영 변형**. 동일한 레퍼런스 13장(SHA 대조�
 |---|---|
 | `refs/` | 레퍼런스 원본 13장 (git 제외, mg-bodylab/refs와 동일) |
 | `style_dna.json` | 11슬롯 값 (주제 반영판) |
-| `style_prompt.txt` | 조립된 프롬프트 — SUBJECT THEMES 줄 포함 (2,623자) |
-| `style_prompt_standalone.txt` | 외부 도구 직접 생성용 (헤더 포함 붙여넣기 버전) |
+| `프롬프트_자동생성용.txt` | 조립된 프롬프트 — SUBJECT THEMES 줄 포함 (2,623자), Codex 렌더에 사용 |
+| `프롬프트_직접생성용_텍스트만.txt` | 외부 도구 직접 생성용 (텍스트만 붙여넣기) |
+| `프롬프트_직접생성용_레퍼런스첨부.txt` | 외부 도구 직접 생성용 (레퍼런스 13장 첨부 시) |
 | `palette_raw.json` | mg-bodylab에서 복사한 k-means 실측값 |
 | `style_reference.png` | 생성된 시트 |

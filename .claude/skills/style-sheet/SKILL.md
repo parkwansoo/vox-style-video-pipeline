@@ -26,7 +26,7 @@ refs/                        새 레퍼런스를 넣는 인박스 (작업 끝나
 styles/<스타일명>/
 ├── refs/                    이 스타일의 레퍼런스 원본 (git 제외)
 ├── style_dna.json           11슬롯 값
-├── style_prompt.txt         조립된 생성 프롬프트
+├── 프롬프트_자동생성용.txt   조립된 생성 프롬프트 (Codex 렌더에 쓰는 본문)
 ├── palette_raw.json         k-means 원시값
 ├── style_reference.png      생성된 시트
 └── NOTES.md                 출처·판단·주의사항
@@ -142,7 +142,7 @@ DNA를 표로 요약해 보여주고 확인을 받는다. 최소한 이 항목�
 ```bash
 .venv/bin/python3 .claude/skills/style-sheet/scripts/make_sheet.py \
   --dna styles/<스타일명>/style_dna.json \
-  --out-prompt styles/<스타일명>/style_prompt.txt \
+  --out-prompt "styles/<스타일명>/프롬프트_자동생성용.txt" \
   --render styles/<스타일명>/style_reference.png
 ```
 
@@ -158,9 +158,9 @@ DNA를 표로 요약해 보여주고 확인을 받는다. 최소한 이 항목�
 - 렌더는 Codex 내장 이미지 생성(ChatGPT 구독 OAuth) — API 키 불필요
 - 실패 시 1회 자동 재시도. 계속 실패하면 `codex login status` 확인 안내
 
-사용자가 직접 다른 도구로 생성하겠다고 하면, 붙여넣기용 변형 두 개를 만들어
-준다 (레퍼런스 첨부 여부에 따라 헤더만 다르고 본문은 동일하게):
-`style_prompt_standalone.txt` / `style_prompt_with_refs.txt`
+붙여넣기용 변형 두 개도 항상 만들어 둔다 (레퍼런스 첨부 여부에 따라 헤더만
+다르고 본문은 동일하게). 사용자가 외부 도구에서 직접 생성할 때 쓴다:
+`프롬프트_직접생성용_텍스트만.txt` / `프롬프트_직접생성용_레퍼런스첨부.txt`
 
 ## 5. 자기 검증 (필수)
 

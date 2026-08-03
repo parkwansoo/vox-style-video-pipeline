@@ -7,10 +7,10 @@ references/slot-template.md for what each slot must contain.
 
 Usage:
   # prompt only
-  python3 make_sheet.py --dna assets/style_dna.json --out-prompt assets/style_prompt.txt
+  python3 make_sheet.py --dna styles/<name>/style_dna.json --out-prompt "styles/<name>/프롬프트_자동생성용.txt"
   # prompt + render the sheet via Codex (ChatGPT subscription, no API key)
-  python3 make_sheet.py --dna assets/style_dna.json --out-prompt assets/style_prompt.txt \
-      --render assets/style_reference.png
+  python3 make_sheet.py --dna styles/<name>/style_dna.json --out-prompt "styles/<name>/프롬프트_자동생성용.txt" \
+      --render styles/<name>/style_reference.png
 """
 import argparse
 import json
