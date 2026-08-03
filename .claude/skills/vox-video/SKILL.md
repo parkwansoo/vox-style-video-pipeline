@@ -103,6 +103,8 @@ description: Vox 스타일 애니메이션 저널리즘 영상을 완전 자동�
 .venv/bin/python3 .claude/skills/vox-video/scripts/tts.py --text-file output/<run>/ch1/script.txt --out-dir output/<run>/ch1
 # 숏폼 스타일이면 배속 지정
 .venv/bin/python3 .claude/skills/vox-video/scripts/tts.py --text-file output/<run>/ch1/script.txt --out-dir output/<run>/ch1 --speed 1.3
+# 훅 중심의 빠른 전개면 무음을 더 조인다
+.venv/bin/python3 .claude/skills/vox-video/scripts/tts.py --text-file output/<run>/ch1/script.txt --out-dir output/<run>/ch1 --speed 1.3 --silence-preset tight
 ```
 
 **배속은 이 단계에서만 지정하면 되고 뒤 단계는 손대지 않는다.** 배속이 Whisper
@@ -112,13 +114,28 @@ description: Vox 스타일 애니메이션 저널리즘 영상을 완전 자동�
 
 **무음은 자동으로 압축된다.** Gemini TTS는 나레이션의 27~32%를 침묵으로
 만드는데(3개 영상 공통, 실발화는 55~57%뿐), 이대로 두면 클립 길이가 말이 아니라
-침묵에 맞춰 잡힌다. 압축 기준은 **문장 경계(마침표 뒤) 0.45초 / 문장 내부 호흡
-0.25초 / 0.20초 미만은 무보정**이다. 무음 길이만으로는 둘을 가를 수 없어서
-(실측에서 문장 경계와 내부 호흡이 똑같이 0.59초였다) **대본으로 판정**하며,
-그래서 정렬을 두 번 돈다 — 1차로 문장 위치를 잡고, 압축하고, 압축본으로 다시
-정렬한다. 정렬률은 압축 전후가 동일하다(실측 1.0000 / 0.9044). 끄려면
-`--no-compress-silence`, 값 조정은 `--silence-sentence`/`--silence-inner`/
-`--silence-mincut`.
+침묵에 맞춰 잡힌다.
+
+| 프리셋 | 문장 경계 | 문장 내부 | 무보정 기준 | 쓰는 곳 |
+|---|---|---|---|---|
+| `sentence` (기본) | 0.45s | 0.25s | 0.20s | 일반 다큐·해설 |
+| `tight` | 0.35s | 0.20s | 0.15s | 훅이 중요한 빠른 전개 |
+
+`--silence-preset tight`으로 바꾸고, 개별 값은 `--silence-sentence`/
+`--silence-inner`/`--silence-mincut`으로 덮어쓴다. 아예 끄려면
+`--no-compress-silence`.
+
+**문장 경계와 내부를 구분하는 게 핵심이다.** 무음 길이만으로는 둘을 가를 수
+없어서(실측에서 문장 경계와 내부 호흡이 똑같이 0.59초였다) **대본으로
+판정**하며, 그래서 정렬을 두 번 돈다 — 1차로 문장 위치를 잡고, 압축하고,
+압축본으로 다시 정렬한다. 정렬률은 압축 전후가 동일하다(실측 1.0000 / 0.9044,
+프리셋·임계값 조합 8종 전부 유지).
+
+⚠ **표현태그(`--tagged-file`)를 쓸 때는 주의한다.** 태그로 만든 한숨·추임새는
+대본에 없는 소리라 정렬로 위치를 알 수 없고, 소리가 작으면 무음으로 잡혀
+잘려나간다. 태그본을 넘기면 무음 임계값이 자동으로 `-45dB`로 내려가 약한 발성이
+소리 쪽에 남지만(실측 제거량 4.63s→3.35s), **완전한 보장은 아니다.** 추임새가
+연출의 핵심이면 `--no-compress-silence`로 끄는 편이 안전하다.
 
 - 내부 동작: 로컬 clone-voice 백엔드(Gemini 음색, SSD 자동 기동)로 음성 생성
   → **무음 압축** → 로컬 MLX Whisper(large-v3-turbo)로 단어 타이밍 추출 →

@@ -24,6 +24,18 @@ import sys
 
 SENTENCE_ENDINGS = (".", "?", "!", "…")
 
+# 압축 강도 프리셋. sentence가 기본이고, tight은 훅이 중요한 빠른 전개용이다.
+PRESETS = {
+    "sentence": {"sentence_keep": 0.45, "inner_keep": 0.25, "mincut": 0.20},
+    "tight": {"sentence_keep": 0.35, "inner_keep": 0.20, "mincut": 0.15},
+}
+
+# 표현태그([sighs] 등)로 만든 한숨·추임새는 대본에 없는 소리라 정렬로는 위치를
+# 알 수 없다. 유일한 방어는 그것들이 "무음"으로 잡히지 않게 임계값을 낮추는 것.
+# 실측상 나레이션의 침묵 구간은 평균 -51~-77dB이므로 -45dB면 약한 발성은
+# 소리 쪽으로 남는다. 완전한 보호가 필요하면 압축 자체를 꺼야 한다.
+TAGGED_THRESHOLD = "-45dB"
+
 
 def _run(cmd, check=True):
     r = subprocess.run(cmd, capture_output=True, text=True)

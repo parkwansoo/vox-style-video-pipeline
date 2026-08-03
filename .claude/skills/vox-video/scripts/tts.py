@@ -40,7 +40,7 @@ import requests
 from dotenv import load_dotenv
 
 from align_words import align
-from compress_silence import compress
+from compress_silence import PRESETS, TAGGED_THRESHOLD, compress
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 DEFAULT_BASE_URL = "http://127.0.0.1:8930"
@@ -168,14 +168,18 @@ def main():
                    action="store_false",
                    help="무음 압축을 끈다. 기본은 켜짐 — 나레이션의 27~32%%가 "
                         "무음이라, 줄이지 않으면 클립 길이가 침묵에 맞춰 잡힌다")
-    p.add_argument("--silence-sentence", type=float, default=0.45,
-                   help="문장 경계(마침표 뒤) 무음을 이만큼까지 남긴다 (기본 0.45)")
-    p.add_argument("--silence-inner", type=float, default=0.25,
-                   help="문장 내부 호흡을 이만큼까지 남긴다 (기본 0.25)")
-    p.add_argument("--silence-mincut", type=float, default=0.20,
-                   help="이보다 짧은 무음은 건드리지 않는다 (기본 0.20)")
-    p.add_argument("--silence-threshold", default="-35dB",
-                   help="무음 판정 볼륨 임계값 (기본 -35dB)")
+    p.add_argument("--silence-preset", choices=sorted(PRESETS), default="sentence",
+                   help="압축 강도. sentence(기본)=문장 경계 0.45/내부 0.25, "
+                        "tight=0.35/0.20 — 훅이 중요한 빠른 전개용")
+    p.add_argument("--silence-sentence", type=float,
+                   help="문장 경계(마침표 뒤) 무음을 이만큼까지 남긴다 (프리셋 값 무시)")
+    p.add_argument("--silence-inner", type=float,
+                   help="문장 내부 호흡을 이만큼까지 남긴다 (프리셋 값 무시)")
+    p.add_argument("--silence-mincut", type=float,
+                   help="이보다 짧은 무음은 건드리지 않는다 (프리셋 값 무시)")
+    p.add_argument("--silence-threshold",
+                   help="무음 판정 볼륨 임계값 (기본 -35dB, --tagged-file을 쓰면 "
+                        f"한숨·추임새 보호를 위해 {TAGGED_THRESHOLD})")
     args = p.parse_args()
 
     # ffmpeg atempo의 단일 필터 유효 범위
@@ -218,6 +222,22 @@ def main():
     #    시간만 든다. 원본은 narration_raw.mp3로 남겨 진단에 쓴다.
     compression = None
     if args.compress_silence:
+        # 표현태그로 만든 한숨·추임새는 대본에 없는 소리라 정렬로 위치를 알 수
+        # 없다. 임계값을 낮춰 "소리" 쪽에 남기는 게 유일한 방어이며, 확실히
+        # 보존하려면 압축 자체를 꺼야 한다.
+        threshold = args.silence_threshold or (
+            TAGGED_THRESHOLD if args.tagged_file else "-35dB")
+        if args.tagged_file and not args.silence_threshold:
+            print(f"[정보] 표현태그 사용 — 한숨·추임새가 잘리지 않도록 무음 "
+                  f"임계값을 {threshold}로 낮춥니다. 확실히 보존하려면 "
+                  "--no-compress-silence를 쓰세요.", file=sys.stderr)
+        params = dict(PRESETS[args.silence_preset])
+        for key, val in (("sentence_keep", args.silence_sentence),
+                         ("inner_keep", args.silence_inner),
+                         ("mincut", args.silence_mincut)):
+            if val is not None:
+                params[key] = val
+
         draft_asr, _ = transcribe(audio_path, args.language)
         draft_words, draft_ratio = align(script, draft_asr, duration)
         if draft_ratio < 0.5:
@@ -226,13 +246,9 @@ def main():
         else:
             raw_path = out_dir / "narration_raw.mp3"
             audio_path.replace(raw_path)
-            compression = compress(
-                raw_path, audio_path, draft_words,
-                sentence_keep=args.silence_sentence,
-                inner_keep=args.silence_inner,
-                mincut=args.silence_mincut,
-                threshold=args.silence_threshold,
-            )
+            compression = compress(raw_path, audio_path, draft_words,
+                                   threshold=threshold, **params)
+            compression["preset"] = args.silence_preset
             duration = ffprobe_duration(audio_path)
             print(f"[정보] 무음 압축 {compression['duration_before']}s → "
                   f"{compression['duration_after']}s "
