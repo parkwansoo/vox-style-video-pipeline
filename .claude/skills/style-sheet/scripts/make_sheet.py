@@ -20,7 +20,7 @@ import sys
 from pathlib import Path
 
 TEMPLATE = """MASTER STYLE SHEET - {system_name} visual system, one 16:9 reference board. A single polished art-direction sheet defining the visual language for a {series_type} explainer series. Editorial grid, consistent margins, section labels. Baked-in typography is intentional here (this is a style guide).
-
+{subjects}
 SURFACE & MOOD: {surface}. Mood: {mood}.
 
 TYPE SPECIMEN PANEL: {type_specimen}. Typography {type_quality}, no warped letters.
@@ -37,6 +37,9 @@ FINISH: {finish}. No watermarks, no lorem ipsum, no unrelated logos, no random g
 
 STAGE_LINE = ("\nOne panel shows THE STAGE: {stage}. "
               "No midground elements present in this panel.\n")
+
+# 선택 입력. 사용자가 주제를 주면 이 한 줄만 끼고, 없으면 기존과 동일하다.
+SUBJECTS_LINE = "\nSUBJECT THEMES: the sample subjects on this sheet relate to {subjects}.\n"
 
 RENDER_WRAPPER = """Use your built-in native image generation tool (NOT the imagegen skill, NOT any external API or API key). Generate ONE 16:9 landscape image and save the image file as {name} in the current working directory. Do nothing else.
 
@@ -99,7 +102,7 @@ def lint(dna, prompt):
     return warn
 
 
-def build_prompt(dna):
+def build_prompt(dna, subjects=None):
     missing = [k for k in REQUIRED if not dna.get(k)]
     if missing:
         sys.exit(f"style DNA에 필수 항목이 없습니다: {', '.join(missing)}\n"
@@ -114,6 +117,7 @@ def build_prompt(dna):
 
     stage = dna.get("stage")
     return TEMPLATE.format(
+        subjects=SUBJECTS_LINE.format(subjects=subjects.rstrip(".")) if subjects else "",
         system_name=dna["system_name"],
         series_type=dna["series_type"],
         surface=dna["surface"],
@@ -162,11 +166,13 @@ def main():
     p.add_argument("--dna", required=True, help="style DNA JSON")
     p.add_argument("--out-prompt", help="조립된 프롬프트를 저장할 경로")
     p.add_argument("--render", help="이 경로로 스타일 시트 이미지를 생성")
+    p.add_argument("--subjects", help="시트 샘플 소재의 주제 (선택). 없으면 자유 생성")
     args = p.parse_args()
 
     dna = json.loads(Path(args.dna).read_text(encoding="utf-8"))
-    prompt = build_prompt(dna)
-    warnings = lint(dna, prompt)
+    prompt = build_prompt(dna, subjects=args.subjects)
+    # 길이 검사는 DNA 슬롯 부풀림을 잡는 용도이므로 주제 줄은 빼고 잰다
+    warnings = lint(dna, build_prompt(dna) if args.subjects else prompt)
 
     if args.out_prompt:
         Path(args.out_prompt).parent.mkdir(parents=True, exist_ok=True)
