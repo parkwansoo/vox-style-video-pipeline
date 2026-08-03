@@ -41,6 +41,9 @@ __pycache__/
 *.mp3
 *.aiff
 
+# === git worktree (격리 작업공간) ===
+.worktrees/
+
 # === 로그·임시 ===
 *.log
 *.tmp
