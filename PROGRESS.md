@@ -596,3 +596,35 @@ B도 규칙을 전부 통과했다(완성 대본 자체가 §4-1 아래 생성�
 창작, 지정하지 않음), 특허번호·수상명·연도 구체 디테일은 안 써도 된다.
 도달·흡수를 포함해 그 외 표현 제한은 없다. 과장·단정 계열(제거·100%·최고
 등)과 의료인 추천 가드는 넣지 않기로 했다 — 표현 자유 우선.
+
+## faceoil 제품 컷 첫 테스트 — 텍스트 속성 전승, 비율만 이탈 (2026-08-04)
+
+`output/test-faceoil/`에서 SPEC FRONT 정면 컷을 3회 생성했다 (mg-bodylab
+활성 스타일 + SPEC.md PRODUCT 블록 + 제품 누끼 --ref).
+
+- **텍스트로 넣은 속성은 3회 모두 완벽**: 라벨 5줄 오탈자 0 (CO₂ 아래첨자까지
+  실물과 동일하게), 투명 유리·오일 2/3·피펫 투시·골드 칼라·흰 벌브·하늘색
+  사이클로라마 전환. vgshot 요소 혼입 없음.
+- **실루엣 비율만 3회 연속 이탈**: 전체 세로:가로 2.76 → 2.67 → 2.62
+  (기준 2.47, 합격 2.4~2.5). 측정은 마스크 교차 검증·바닥 크롭 확인으로
+  신뢰 확보. 항상 길쭉한 쪽으로 5~12% — 방향이 일관된 계통 오차다.
+- **원인 가설**: faceoil PRODUCT 블록에 vgshot에는 있는 역방향 견제 문장
+  ("Do not stretch the glass into a tall slim column")이 없다. "tall squircle
+  prism", "clearly taller than it is wide" 같은 문구만 있어 길쭉한 쪽으로
+  쏠린다. 숫자 금지 원칙을 지키면서 고칠 수 있는 지점 — 사용자 확인 대기.
+
+### 해결 (2026-08-04 추가): 클래스 선입견 교정으로 비율 합격
+
+견제 문장(v4)만으로는 부족했고(2.65), 원인을 "모델이 스포이드 병이라는
+클래스 자체를 슬림하게 학습한 선입견"으로 재규정한 수정이 통했다:
+
+- 슬림을 미는 단어 제거 ("tall squircle prism"→"squircle prism",
+  "clearly taller"→"taller")
+- 선입견 교정 문장 추가: "noticeably wider and stockier than a typical
+  slim dropper bottle"
+- 비대칭 방향 지시: "when unsure err wider and shorter, never taller and
+  slimmer" (5회 오차가 전부 슬림 방향이었으므로)
+
+결과 v5: 전체 2.43(합격), 유리병:캡 1.40(합격), 유리병만 1.42(기준 1.43).
+라벨·재질·디테일 유지. SPEC.md PRODUCT 블록에 반영 완료. vgshot SPEC에도
+같은 패턴 적용을 검토할 것 (TODO에 기록).

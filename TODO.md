@@ -48,3 +48,4 @@
 - [x] 2026-08-01 9:16 세로 스타일 지원 (gen_image.py --aspect 추가, 영상·합본은 기존 옵션 사용)
 - [x] 2026-08-01 style-sheet 스킬 구축: 레퍼런스 이미지 → 11슬롯 스타일 DNA → 마스터 시트 역설계 (템플릿 재현성 + E2E 검증 완료)
 - [x] ~~ElevenLabs 기본 보이스 만료 대응~~ — ElevenLabs 제거로 불필요해짐
+- [ ] 2026-08-04 vgshot SPEC.md에도 클래스 선입견 교정 패턴 적용 검토 (faceoil에서 비율 2.65→2.43 개선 확인, assets/products/faceoil/SPEC.md PRODUCT 블록 참조)
