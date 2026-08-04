@@ -29,7 +29,7 @@
     "build": "remotion bundle",
     "upgrade": "remotion upgrade",
     "lint": "eslint src && tsc",
-    "studio": "remotion studio src/index.ts",
+    "studio": "remotion studio src/index.ts --port 4330",
     "render": "node scripts/render.mjs"
   },
   "sideEffects": [

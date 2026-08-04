@@ -61,3 +61,5 @@ __pycache__/
 subtitler/node_modules/
 # Remotion 렌더 캐시 (자동 생성)
 .remotion/
+# Helvetica는 상용 폰트 — 공개 저장소에 커밋 금지 (로컬 보관만)
+subtitler/public/_fonts/Helvetica-Bold.ttf

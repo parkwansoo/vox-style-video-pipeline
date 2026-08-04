@@ -13,10 +13,7 @@ import { renderMedia, selectComposition } from "@remotion/renderer";
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
-
-const HERE = path.dirname(fileURLToPath(import.meta.url));
-const SUBTITLER = path.dirname(HERE);
+import { buildInputProps, SUBTITLER } from "./props.mjs";
 
 function arg(name, fallback = null) {
   const i = process.argv.indexOf(name);
@@ -35,40 +32,11 @@ const presetName = arg("--preset", "vox-기본");
 const crf = Number(arg("--crf", 14));
 const codec = arg("--codec", "h264");
 
-// ① 입력 영상 규격 실측
-const probe = JSON.parse(execFileSync("ffprobe", [
-  "-v", "error", "-select_streams", "v:0",
-  "-show_entries", "stream=width,height,avg_frame_rate",
-  "-show_entries", "format=duration", "-of", "json", src,
-], { encoding: "utf8" }));
-const stream = probe.streams[0];
-const [num, den] = stream.avg_frame_rate.split("/").map(Number);
-let fps = den ? num / den : Number(num);
-// concat 산물은 avg가 23.897처럼 흔들린다 — 정수에 가까우면 스냅
-if (Math.abs(fps - Math.round(fps)) < 0.2) fps = Math.round(fps);
-const durationMs = Math.round(parseFloat(probe.format.duration) * 1000);
-const { width, height } = stream;
-
-// ② props 구성 (프리셋 + 자막)
-const captions = JSON.parse(fs.readFileSync(captionsPath, "utf8"));
-const presets = JSON.parse(fs.readFileSync(path.join(SUBTITLER, "config", "caption-preset.json"), "utf8"));
-const p = presets[presetName];
-if (!p) { console.error(`프리셋 없음: ${presetName}`); process.exit(1); }
-
-const inputProps = {
-  가로: width, 세로: height, fps, 영상길이ms: durationMs,
-  폰트: p.fontKey, 글자굵기: p.fontWeight, 글자크기: p.fontSizePct,
-  글자색: p.textColor, 외곽선색: p.strokeColor,
-  // 외곽선은 px 단위라 높이에 비례 보정 (프리셋 기준 1920px)
-  외곽선두께: Math.max(1, Math.round(p.strokeWidthPx * height / 1920)),
-  강조색1: p.highlightColor1, 강조색2: p.highlightColor2,
-  강조단어: [], 강조단어2: [],  // vox 기본: 강조색 미사용 (사용자 확정)
-  등장효과: p.entrance, 효과세기: p.effectStrength,
-  자막높이: p.captionYPct, 안전여백: p.safeMarginPct,
-  자막최대너비: p.captionMaxWidthPct,
-  자막목록: captions,
-  장면목록: [{ startMs: 0, endMs: durationMs, type: "video", asset: "bg.mp4", volume: 1 }],
-};
+// ①② 입력 영상 실측 + props 구성 (prepare-studio.mjs와 공유 — props.mjs)
+const { inputProps, video, captions } = buildInputProps({
+  src, captionsPath, presetName, asset: "bg.mp4",
+});
+const { width, height, fps, durationMs } = video;
 
 // ③ 스테이징 publicDir — bundle()이 publicDir 전체를 복사하므로 필요한 것만 담는다
 const staging = path.join(path.resolve(runDir), ".subtitle-public");

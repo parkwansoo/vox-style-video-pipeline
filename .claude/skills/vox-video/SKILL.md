@@ -384,7 +384,22 @@ node subtitler/scripts/render.mjs --run output/<run>   # → final_sub.mp4
 - 최초 1회 `cd subtitler && npm install` 필요 (Remotion, 약 500MB)
 - 스타일은 `subtitler/config/caption-preset.json` (20번 숏츠자동화 프리셋 형식,
   2026-08-04 사용자 확정: 흰 글자·검정 외곽선·강조색 없음·fade+pop·높이 65%·
-  fontSizePct 4.74 = 1920 기준 91px)
+  fontSizePct 4.74 = 1920 기준 91px). 폰트는 한글 29종 동봉
+  (`subtitler/public/_fonts/`, 카탈로그는 `src/font-catalog.mjs`)
+- **스타일 튜닝은 리모션 스튜디오에서** (사용자가 눈으로 보며 조정):
+  ```bash
+  node subtitler/scripts/prepare-studio.mjs --run output/<run>   # 영상·자막 동기화
+  cd subtitler && npm run studio                                  # localhost:4330
+  ```
+  오른쪽 Props 패널에서 폰트·글자크기·색·자막높이를 실시간 변경. **확정한 값은
+  caption-preset.json에 옮겨 적고**, 폰트·글자크기가 바뀌었으면 make_captions를
+  다시 돌린다(조각 폭이 달라짐). Inspector의 "Can't save default props" 경고는
+  정상이며 **Resolve 버튼은 절대 누르지 않는다** (소스 오염). 스튜디오 사용 후
+  `git status`로 subtitler/ 워킹트리 오염을 확인한다
+- 폰트를 새로 추가하면: 파일을 `subtitler/public/_fonts/`에 넣고
+  `src/font-catalog.mjs`에 등록 →
+  `.venv/bin/python3 .claude/skills/vox-video/scripts/measure_font_metrics.py`
+  (폭 실측 — 한 줄 보장에 필수)
 - 자막은 **항상 한 줄** — make_captions가 폰트 실측 폭으로 자르고 넘침을 검출
   (overflow 배열이 비어야 정상, 아니면 exit 1)
 - 화질: 기본 crf 14 (`--crf`), 코덱 h264 기본 (`--codec h265` 선택)

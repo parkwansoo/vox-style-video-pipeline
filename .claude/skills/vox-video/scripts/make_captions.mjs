@@ -26,8 +26,6 @@ if (!runDir) {
 // 720x1280이든 1080x1920이든 같은 비율로 잘린다. --font-px/--avail-px로 덮어쓰기 가능.
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, '../../../..');
-const metrics = JSON.parse(fs.readFileSync(path.join(here, 'caption-font-metrics.json'), 'utf8'));
-setCaptionMetrics(metrics);
 const minDurMs = Number(arg('--min-dur-ms', 700));
 const outPath = arg('--out', path.join(runDir, 'captions.json'));
 
@@ -40,6 +38,16 @@ const presets = JSON.parse(fs.readFileSync(
   path.join(repoRoot, 'subtitler', 'config', 'caption-preset.json'), 'utf8'));
 const preset = presets[presetName];
 if (!preset) { console.error(`프리셋 없음: ${presetName}`); process.exit(1); }
+
+// 메트릭은 폰트별로 실측돼 있다 (한글 폭이 폰트마다 0.83~0.96em으로 다르다).
+// 프리셋의 폰트가 측정에 없으면 measure_font_metrics.py를 먼저 돌린다.
+const allMetrics = JSON.parse(fs.readFileSync(path.join(here, 'caption-font-metrics.json'), 'utf8'));
+const metrics = allMetrics[preset.fontKey];
+if (!metrics) {
+  console.error(`폰트 메트릭 없음: ${preset.fontKey} — measure_font_metrics.py를 실행하세요`);
+  process.exit(1);
+}
+setCaptionMetrics(metrics);
 const fontPx = Number(arg('--font-px',
   (preset.fontSizePct / 100) * timeline.height));
 const widthPct = Math.min(preset.captionMaxWidthPct ?? 100, 100 - 2 * preset.safeMarginPct);
