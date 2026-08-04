@@ -661,3 +661,22 @@ pump" 비대칭 지시). 8/2 구버전 최종본과 같은 STILL로 히어로 �
   동일하고 컷 사이 늘어짐이 조여졌다
 - clip1 영상은 "정지+하이라이트만" 지시를 모델이 "떠서 살랑이는 병"으로
   해석했으나 라벨·형태 온전, 사용자 통과
+
+## Remotion 자막 레이어 구현 완료 — subtitler/ (2026-08-04)
+
+20번 렌더러 차용 테스트(같은 날, 위 절)로 검증한 구성을 28번 자체 렌더러로
+확정했다. 사용자 결정: 디스크 우려 해소(+500MB 실측) 후 28번 구축, 단 **20번
+데이터 계약(캡션 스키마·props 키·프리셋 형식·폰트 경로) 유지**로 언제든 통합
+가능하게.
+
+- `subtitler/`: create-video 스캐폴드(Remotion 4.0.505) + 20번 컴포넌트 4종
+  무수정 이식(Captions/caption-layout/fonts/font-catalog, 강조는 빈 배열로 OFF)
+  + schema/SubtitledVideo/Root(가로·세로·fps 가변) + render.mjs(Node API,
+  crf 14 기본, 완전 명시 props, 원자적 발행, 자체 검증)
+- make_captions.mjs: 폭 예산을 timeline+프리셋에서 자동 산출로 개선
+- SKILL.md: 7.5 자막 단계(기본 ON) + 8단계 자막 검증 추가
+- 검증: final.mp4(720x1280@24) 렌더 → 24fps 유지, 싱크 3곳 일치, 한 줄 보장,
+  오디오 통과. Remotion AAC 무음 꼬리 ~0.4s는 정상(20번 산출물과 동일)이라
+  검증을 영상 스트림 기준으로 조정
+- 파이프라인 자막 3원칙: 텍스트는 대본 정본(오탈자 0), 타이밍은 timeline.json
+  offset(드리프트 보정), 폭은 폰트 실측(한 줄 보장)

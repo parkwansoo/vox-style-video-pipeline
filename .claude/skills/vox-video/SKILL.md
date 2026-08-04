@@ -363,14 +363,48 @@ API보다 취약하고 사람 개입이 필요하다. 절차는
 - 여백을 그대로 두려면 `--no-fit-clips`
 - 클립이 구간보다 **짧으면** 손쓸 수 없다(느리게 만들지 않는다). 4단계에서
   구간보다 긴 클립을 고르는 이유다
+- **timeline.json이 final.mp4 옆에 항상 기록된다** — 클립별 offset(정규화 실측
+  누적)·rate·실측 길이. 7.5 자막 단계가 이것을 소비한다. seg_start 누적으로
+  대체하면 안 된다(프레임 반올림 드리프트, 12클립 실측 +0.115s). 합본 없이
+  timeline만 갱신하려면 `--timeline-only` (final.mp4는 건드리지 않는다)
+
+## 7.5 자막 (기본 ON, 2026-08-04 도입)
+
+words.json(대본 정본에 정렬된 어절 타이밍)으로 자막을 만들어 final.mp4 위에
+렌더한다. 텍스트가 대본에서 나오므로 **오탈자가 구조적으로 없다**. 사용자가
+자막 제외를 요청할 때만 생략한다.
+
+```bash
+# ① 자막 생성 — timeline.json + ch*/words.json → captions.json
+node .claude/skills/vox-video/scripts/make_captions.mjs --run output/<run>
+# ② 렌더 — final.mp4 위에 자막 (해상도·fps는 입력 영상을 그대로 따름)
+node subtitler/scripts/render.mjs --run output/<run>   # → final_sub.mp4
+```
+
+- 최초 1회 `cd subtitler && npm install` 필요 (Remotion, 약 500MB)
+- 스타일은 `subtitler/config/caption-preset.json` (20번 숏츠자동화 프리셋 형식,
+  2026-08-04 사용자 확정: 흰 글자·검정 외곽선·강조색 없음·fade+pop·높이 65%·
+  fontSizePct 4.74 = 1920 기준 91px)
+- 자막은 **항상 한 줄** — make_captions가 폰트 실측 폭으로 자르고 넘침을 검출
+  (overflow 배열이 비어야 정상, 아니면 exit 1)
+- 화질: 기본 crf 14 (`--crf`), 코덱 h264 기본 (`--codec h265` 선택)
+- 외부 영상(업스케일본 등)에 씌우려면 `--video <파일명>` — 같은 run 폴더에 두고
+  실행하면 해상도·fps를 자동으로 따라간다
+- **재합본을 했으면 자막도 반드시 다시 생성한다** (offset이 변한다)
+- 다른 대본·다른 영상에 이 자막을 재사용하지 않는다 (타이밍이 그 합본 전용)
 
 ## 8. 검증 & 전달
 
 - 출력된 duration이 기대치(챕터 수 × 약 30s)와 맞는지 확인한다.
 - 경고 로그("나레이션 구간이 클립 실효 길이보다 깁니다")가 있으면 해당 클립
   분할을 고쳐 재합본한다.
-- 최종 영상을 SendUserFile로 사용자에게 전달하고, 스토리 요약·클립 구성
-  (몇 초에 무엇이 나오는지)을 함께 보고한다.
+- **자막 검증** (7.5를 실행했으면): render.mjs가 오디오·길이·해상도를 자체
+  검증한다(problems 배열이 비어야 정상). 추가로 자막 3~4곳의 중간 시각 프레임을
+  `ffmpeg -ss <t> -i final_sub.mp4 -frames:v 1`로 뽑아 화면의 자막이 captions.json의
+  그 시각 조각과 일치하는지, 한 줄로 나오는지 Read로 확인한다 — 특히 챕터
+  경계 직후 컷 하나는 반드시 본다 (드리프트 보정 확인).
+- 최종 영상(자막본이 기본, `final_sub.mp4`)을 SendUserFile로 사용자에게 전달하고,
+  스토리 요약·클립 구성(몇 초에 무엇이 나오는지)을 함께 보고한다.
 
 ## 공인(public figure) 규칙 요약
 

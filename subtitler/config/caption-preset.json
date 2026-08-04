@@ -1,0 +1,17 @@
+{
+ "vox-기본": {
+  "fontKey": "G마켓 산스",
+  "fontWeight": 800,
+  "fontSizePct": 4.74,
+  "textColor": "#FFFFFF",
+  "strokeColor": "#000000",
+  "strokeWidthPx": 5,
+  "highlightColor1": "#fdfb25",
+  "highlightColor2": "#fa0011",
+  "entrance": "fade+pop",
+  "effectStrength": 1,
+  "captionYPct": 65,
+  "safeMarginPct": 6,
+  "captionMaxWidthPct": 88
+ }
+}

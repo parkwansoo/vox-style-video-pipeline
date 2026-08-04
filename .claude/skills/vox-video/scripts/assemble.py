@@ -62,6 +62,27 @@ def has_audio(path):
     return bool(r.stdout.strip())
 
 
+def write_timeline(args, w, h, durations, rates, clip_meta):
+    """클립별 offset·rate·실측 길이를 --out 옆 timeline.json에 기록한다."""
+    out_dir = os.path.dirname(os.path.abspath(args.out))
+    os.makedirs(out_dir, exist_ok=True)
+    clips, acc = [], 0.0
+    for meta, dur, rate in zip(clip_meta, durations, rates):
+        clips.append({**meta, "rate": rate,
+                      "offset": round(acc, 3), "duration": round(dur, 3)})
+        acc += dur
+    path = os.path.join(out_dir, "timeline.json")
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump({
+            "version": 1,
+            "out": args.out,
+            "width": w, "height": h, "fps": args.fps, "trim": args.trim,
+            "total_duration": round(acc, 3),
+            "clips": clips,
+        }, f, ensure_ascii=False, indent=1)
+    return path
+
+
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--manifest", required=True)
@@ -78,6 +99,8 @@ def main():
     p.add_argument("--max-rate", type=float, default=2.0,
                    help="클립 맞춤 배속의 상한 (기본 2.0). 이 값에 걸리면 경고한다")
     p.add_argument("--keep-temp", action="store_true")
+    p.add_argument("--timeline-only", action="store_true",
+                   help="합본하지 않고 timeline.json만 갱신한다 (--out 파일은 건드리지 않는다)")
     args = p.parse_args()
 
     with open(args.manifest, encoding="utf-8") as f:
@@ -98,7 +121,7 @@ def main():
     # that and, at the modest rates this produces, reads as extra energy rather
     # than as fast-forward. Rates are per-clip: each cut is matched to the words
     # it carries, not to a global average.
-    norm_paths, durations, rates = [], [], []
+    norm_paths, durations, rates, clip_meta = [], [], [], []
     vf = (
         f"scale={w}:{h}:force_original_aspect_ratio=decrease,"
         f"pad={w}:{h}:(ow-iw)/2:(oh-ih)/2,fps={args.fps},format=yuv420p"
@@ -140,7 +163,22 @@ def main():
             norm_paths.append(dst)
             durations.append(ffprobe_duration(dst))
             rates.append(round(rate, 3))
+            clip_meta.append({
+                "global": idx, "chapter": ci, "clip": si, "file": src,
+                "narration": ch["narration"],
+                "seg_start": float(clip["seg_start"]),
+                "seg_end": float(clip["seg_end"]),
+            })
             idx += 1
+
+    # 자막 등 후속 단계는 클립별 시작 시각(offset)이 필요하다. seg_start를 그대로
+    # 쓰면 안 된다 — 정규화는 프레임 단위로 반올림하므로 클립마다 수십 ms씩 밀리고
+    # 그 오차가 누적된다(12클립 기준 실측 +0.16s). 실측 길이의 누적합만이 정답이다.
+    write_timeline(args, w, h, durations, rates, clip_meta)
+    if args.timeline_only:
+        if not args.keep_temp:
+            shutil.rmtree(tmp, ignore_errors=True)
+        return
 
     # 2) Concatenate
     list_path = os.path.join(tmp, "concat.txt")

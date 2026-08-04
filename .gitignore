@@ -56,3 +56,6 @@ __pycache__/
 
 # === Claude Code 로컬 설정 (개인 권한 설정) ===
 .claude/settings.local.json
+
+# Remotion 자막 렌더러 의존성
+subtitler/node_modules/
