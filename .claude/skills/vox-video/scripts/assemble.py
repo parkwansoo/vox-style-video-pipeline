@@ -62,6 +62,24 @@ def has_audio(path):
     return bool(r.stdout.strip())
 
 
+def atempo_chain(rate):
+    """배속을 atempo 필터 체인으로 만든다.
+
+    atempo는 한 단에 0.5~2.0만 받는다. 그 범위를 벗어나면 곱이 rate가 되도록
+    여러 단으로 쪼갠다 (예: 2.34 → atempo=2.0,atempo=1.17). 단일 필터로 넘기면
+    범위를 벗어나는 순간 ffmpeg가 그대로 죽는다.
+    """
+    parts, r = [], rate
+    while r > 2.0:
+        parts.append(2.0)
+        r /= 2.0
+    while r < 0.5:
+        parts.append(0.5)
+        r /= 0.5
+    parts.append(r)
+    return ",".join(f"atempo={p:.5f}" for p in parts)
+
+
 def write_timeline(args, w, h, durations, rates, clip_meta):
     """클립별 offset·rate·실측 길이를 --out 옆 timeline.json에 기록한다."""
     out_dir = os.path.dirname(os.path.abspath(args.out))
@@ -153,7 +171,7 @@ def main():
                 cmd += ["-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo", "-shortest"]
             cmd += ["-vf", vf if rate == 1.0 else f"setpts=PTS/{rate:.5f},{vf}"]
             if src_has_audio and rate != 1.0:
-                cmd += ["-af", f"atempo={rate:.5f}"]
+                cmd += ["-af", atempo_chain(rate)]
             cmd += [
                 "-c:v", "libx264", "-preset", "medium", "-crf", "18",
                 "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-ac", "2",

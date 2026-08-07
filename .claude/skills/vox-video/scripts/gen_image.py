@@ -25,10 +25,15 @@ HEADER = """Use your built-in native image generation tool (NOT the imagegen ski
 # 첨부가 스타일 시트 한 장일 때 (기본)
 ATTACH_STYLE_ONLY = """The attached image is a master style sheet: use it for materials and visual language only. Never copy its board layout, its sample words, or the specific props and subjects shown in it — those are samples, not content for this frame."""
 
-# 스타일 시트 + 추가 레퍼런스(제품 등)를 함께 첨부할 때
-ATTACH_WITH_REFS = """The FIRST attached image is a master style sheet: use it for materials and visual language only. Never copy its board layout, its sample words, or the specific props and subjects shown in it — those are samples, not content for this frame.
+# 첨부가 여럿일 때 공통으로 오는 스타일 시트 설명
+STYLE_HEAD_MULTI = """The FIRST attached image is a master style sheet: use it for materials and visual language only. Never copy its board layout, its sample words, or the specific props and subjects shown in it — those are samples, not content for this frame."""
 
-The REMAINING attached image(s) are identity references for a real object that must appear in this frame. Keep each one's recognizable shape, proportions, colour, material and label layout exactly as shown, but render it in the style sheet's visual language rather than copying its original lighting or background. Do not redesign it, do not restyle its label, and do not invent extra text on it."""
+# --revise: 같은 컷을 다시 렌더할 때. 구도를 붙잡아 두고 재질·색만 고친다.
+# 새로 생성하면 구도가 매번 달라져 이미 통과한 화면 배치를 잃는다.
+REVISE_BLOCK = """The NEXT attached image is the previous render of this exact frame. Treat it as the composition reference: keep its camera angle, framing, subject placement, scale, silhouette and overall layout unchanged — this is a re-render of the same shot, not a new scene. Where the style sheet and this previous render disagree with the image prompt below, the image prompt wins: change exactly what it asks to change and leave everything else as it is."""
+
+# 제품 등 정체성 레퍼런스
+REFS_BLOCK = """The REMAINING attached image(s) are identity references for a real object that must appear in this frame. Keep each one's recognizable shape, proportions, colour, material and label layout exactly as shown, but render it in the style sheet's visual language rather than copying its original lighting or background. Do not redesign it, do not restyle its label, and do not invent extra text on it."""
 
 WRAPPER = """{header}
 
@@ -47,6 +52,8 @@ def main():
     # 제품 등 추가 정체성 레퍼런스. 여러 번 줄 수 있고, 안 주면 기존과 동일하게 동작한다.
     p.add_argument("--ref", action="append", default=[], metavar="PATH",
                    help="스타일 시트 외 추가 참조 이미지 (반복 지정 가능)")
+    p.add_argument("--revise", metavar="PATH",
+                   help="이전 렌더본. 구도를 유지한 채 프롬프트가 지시한 부분만 고쳐 다시 그린다")
     p.add_argument("--out", required=True)
     p.add_argument("--aspect", default="16:9", choices=["16:9", "9:16"],
                    help="세로 스타일이면 9:16 (기본 16:9)")
@@ -62,6 +69,11 @@ def main():
     style_ref = Path(args.style_ref).resolve()
     if not style_ref.is_file():
         sys.exit(f"스타일 참조 이미지가 없습니다: {style_ref}")
+    revise_ref = None
+    if args.revise:
+        revise_ref = Path(args.revise).resolve()
+        if not revise_ref.is_file():
+            sys.exit(f"이전 렌더본이 없습니다: {revise_ref}")
     extra_refs = []
     for raw in args.ref:
         ref = Path(raw).resolve()
@@ -77,15 +89,26 @@ def main():
     tmp_path = out_path.parent / f"{out_path.stem}__gen{uuid.uuid4().hex[:8]}.png"
 
     codex = os.environ.get("CODEX_BIN", "codex")
+    if revise_ref or extra_refs:
+        blocks = [STYLE_HEAD_MULTI]
+        if revise_ref:
+            blocks.append(REVISE_BLOCK)
+        if extra_refs:
+            blocks.append(REFS_BLOCK)
+        attach = "\n\n".join(blocks)
+    else:
+        attach = ATTACH_STYLE_ONLY
     wrapped = WRAPPER.format(
         header=HEADER.format(name=tmp_path.name, aspect=args.aspect,
                              orientation=ORIENTATION[args.aspect]),
-        attach=ATTACH_WITH_REFS if extra_refs else ATTACH_STYLE_ONLY,
+        attach=attach,
         prompt=prompt,
     )
     cmd = [codex, "exec", "--skip-git-repo-check", "-s", "workspace-write",
            "-C", str(out_path.parent), "-i", str(style_ref)]
-    # 스타일 시트가 항상 첫 번째 첨부여야 한다 (프롬프트가 FIRST/REMAINING으로 구분한다)
+    # 첨부 순서가 곧 프롬프트의 FIRST/NEXT/REMAINING이다 — 시트, 이전 렌더본, 정체성 레퍼런스
+    if revise_ref:
+        cmd += ["-i", str(revise_ref)]
     for ref in extra_refs:
         cmd += ["-i", str(ref)]
     # "--" 없이는 변수 개수 옵션인 -i가 프롬프트 인자까지 삼킨다

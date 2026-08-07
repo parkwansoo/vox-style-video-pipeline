@@ -33,6 +33,8 @@
 - [ ] 2026-08-01 style-sheet: k-means가 종이 톤 그라데이션을 여러 색으로 쪼개는 문제 — 색상환 거리 기반 자동 병합 검토 — scripts/extract_palette.py
 - [ ] 2026-08-03 광고 편 대본 규칙(주장 경계·의약품 오인 금지·의료인 가드·⚠ 정지점) 이식 보류 — 완성 대본 참고만 채택함. 완성 대본을 거치지 않는 새 주장이 대본에 늘어나면 재논의 (PROGRESS 2026-08-03 비교 테스트 참조) — .claude/skills/vox-video/SKILL.md 2단계
 
+- [ ] 2026-08-06 **스타일 시트를 새로 만들어 교정 블록을 걷어내기** — `references/image-prompt-options.md`의 A·B 블록은 mg-bodylab 시트가 피부 단면을 *wet pinks*로 규정해서 생긴 대응책이다. 시트를 징그럽지 않게 다시 만들면(구슬 격자·중성 톤을 시트 자체에 넣음) 이 교정들은 불필요해진다 — styles/mg-bodylab/style_dna.json의 components "in wet pinks"
+
 ## 완료
 
 - [x] 2026-08-03 **나레이션 무음 압축을 tts.py의 ASR 직전에 도입** (132cab4) — 3영상 모두 실발화 55~57%/무음 27~32%인 TTS 구조 문제. `compress_silence.py` 신설, 프리셋 sentence(기본)/tight. `words.json`이 압축 기준이 되어 뒤 단계 무변경, 배속이 불필요해졌다

@@ -100,12 +100,15 @@ def generate_omni(prompt, image_path, image_uri, duration, aspect, out_path):
     sys.exit(f"영상 생성 실패(omni): {last}")
 
 
-def generate_seedance(prompt, image_path, image_url, duration, aspect, resolution, out_path):
+def generate_seedance(prompt, image_path, image_url, duration, aspect, resolution, out_path,
+                      last_image_path=None, last_image_url=None):
     import kie_common
     if not image_url and image_path:
         image_url = kie_common.upload_file(image_path)
     if not image_url:
         sys.exit("seedance는 --image 또는 --image-url 로 첫 프레임 이미지를 지정해야 합니다.")
+    if not last_image_url and last_image_path:
+        last_image_url = kie_common.upload_file(last_image_path)
     if resolution not in ("480p", "720p"):
         sys.exit(f"Seedance 2.0 Fast는 480p/720p만 지원합니다 (지정값: {resolution})")
     payload = {
@@ -116,6 +119,10 @@ def generate_seedance(prompt, image_path, image_url, duration, aspect, resolutio
         "resolution": resolution,
         "generate_audio": True,
     }
+    # 끝 프레임을 지정하면 첫·끝 프레임 모드가 된다. 두 프레임 사이를 모델이 이어 그리므로
+    # 앞 클립의 마지막 프레임을 first로 주면 컷 없이 이어지는 연결 클립을 만들 수 있다.
+    if last_image_url:
+        payload["last_frame_url"] = last_image_url
     try:
         out = kie_common.generate("bytedance/seedance-2-fast", payload, out_path, timeout=1200)
     except kie_common.KieError as e:
@@ -132,6 +139,8 @@ def main():
     g.add_argument("--prompt-file")
     p.add_argument("--image", help="로컬 이미지 (omni=참조, seedance=첫 프레임)")
     p.add_argument("--image-url", help="이미 업로드된 이미지 URI/URL")
+    p.add_argument("--last-image", help="seedance 전용: 끝 프레임 로컬 이미지")
+    p.add_argument("--last-image-url", help="seedance 전용: 끝 프레임 이미지 URL")
     p.add_argument("--duration", required=True, type=int, choices=[4, 6])
     p.add_argument("--aspect", default="16:9")
     p.add_argument("--resolution", default=os.environ.get("KIE_VIDEO_RESOLUTION") or "720p",
@@ -145,11 +154,14 @@ def main():
             prompt = f.read().strip()
 
     if args.model == "omni":
+        if args.last_image or args.last_image_url:
+            sys.exit("--last-image는 seedance 전용입니다 (omni는 끝 프레임을 받지 않습니다).")
         result = generate_omni(prompt, args.image, args.image_url,
                                args.duration, args.aspect, args.out)
     else:
         result = generate_seedance(prompt, args.image, args.image_url,
-                                   args.duration, args.aspect, args.resolution, args.out)
+                                   args.duration, args.aspect, args.resolution, args.out,
+                                   args.last_image, args.last_image_url)
     print(json.dumps(result, ensure_ascii=False))
 
 

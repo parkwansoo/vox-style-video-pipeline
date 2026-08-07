@@ -64,12 +64,14 @@ def clone_or_copy(source: Path, destination: Path) -> None:
         raise ValueError(f"업로드 사본의 SHA 검증에 실패했습니다: {destination}")
 
 
-def parse_clip_spec(raw: str) -> tuple[int, int]:
-    match = re.fullmatch(r"(\d+):(\d+)", raw)
+def parse_clip_spec(raw: str) -> tuple[str, int]:
+    # 번호에 접미사를 허용한다(1b 등). 기존 클립 사이에 새 컷을 끼울 때 뒤 번호를
+    # 전부 밀지 않고 clip1b로 넣을 수 있다.
+    match = re.fullmatch(r"(\d+[a-z]?):(\d+)", raw)
     if not match:
-        raise ValueError(f"--clip 형식은 번호:길이 입니다 (예: 3:6). 받은 값: {raw}")
-    number, duration = int(match.group(1)), int(match.group(2))
-    if number < 1:
+        raise ValueError(f"--clip 형식은 번호:길이 입니다 (예: 3:6, 1b:4). 받은 값: {raw}")
+    number, duration = match.group(1), int(match.group(2))
+    if int(re.match(r"\d+", number).group()) < 1:
         raise ValueError(f"클립 번호는 1 이상이어야 합니다: {raw}")
     if duration not in OMNI_DURATIONS:
         raise ValueError(f"Omni가 지원하지 않는 길이입니다: {duration}s")
@@ -80,13 +82,39 @@ def parse_clip_spec(raw: str) -> tuple[int, int]:
     return number, duration
 
 
+def resolve_images(chapter_dir: Path, number: str) -> tuple[str, list[tuple[str, Path]]]:
+    """이 클립이 이미지 1장인지 첫·끝 2장인지 파일 존재로 정하고, Flow 화면에서
+    눌러야 할 입력 모드를 함께 돌려준다.
+
+    반환하는 모드는 **Flow UI의 라벨 그대로**다. 역할 이름(첫 프레임/끝 프레임)과
+    화면 설정 이름이 엇갈리므로 여기서 화면 기준으로 통일한다 (2026-08-06 실측):
+
+    - 1장 → "프레임" : 시작 슬롯에만 넣어 그 이미지를 첫 프레임으로 고정한다.
+    - 2장 → "애셋"   : Omni Flash는 프레임 모드의 종료 슬롯을 지원하지 않는다.
+                        애셋 모드에 두 장을 순서대로 붙이면 첫·끝 프레임이 된다.
+
+    clip<N>_first.png 와 clip<N>_end.png 가 둘 다 있으면 2장, 아니면 clip<N>.png
+    1장이다. 한쪽만 있으면 실수이므로 세운다.
+    """
+    first = chapter_dir / f"clip{number}_first.png"
+    end = chapter_dir / f"clip{number}_end.png"
+    if first.is_file() and end.is_file():
+        return "애셋", [("first", first), ("end", end)]
+    if first.is_file() or end.is_file():
+        missing = end if first.is_file() else first
+        raise ValueError(f"첫·끝 두 장을 쓰려면 둘 다 있어야 합니다. 없는 파일: {missing}")
+    single = chapter_dir / f"clip{number}.png"
+    if not single.is_file():
+        raise ValueError(f"필요한 파일이 없습니다: {single}")
+    return "프레임", [("first", single)]
+
+
 def build_job(chapter_dir: Path, run_slug: str, chapter: int,
-              number: int, duration: int) -> dict[str, object]:
+              number: str, duration: int) -> dict[str, object]:
     prompt_path = chapter_dir / f"clip{number}_vid.txt"
-    image_path = chapter_dir / f"clip{number}.png"
-    for path in (prompt_path, image_path):
-        if not path.is_file():
-            raise ValueError(f"필요한 파일이 없습니다: {path}")
+    if not prompt_path.is_file():
+        raise ValueError(f"필요한 파일이 없습니다: {prompt_path}")
+    flow_input_mode, image_specs = resolve_images(chapter_dir, number)
 
     raw_prompt = prompt_path.read_text(encoding="utf-8")
     # Slate 편집기는 줄바꿈을 견디지 못한다. 모든 공백을 단일 공백으로 접는다.
@@ -100,35 +128,45 @@ def build_job(chapter_dir: Path, run_slug: str, chapter: int,
     if re.search(r"[\r\n​﻿]", single_line):
         raise ValueError(f"프롬프트에 숨은 문자가 남아 있습니다: {prompt_path}")
 
-    image_sha = sha256_file(image_path)
     job_id = f"ch{chapter}-clip{number}"
-    return {
+    images = []
+    for role, path in image_specs:
+        sha = sha256_file(path)
+        images.append({
+            "role": role,
+            "path": str(path.resolve()),
+            "sha256": sha,
+            "upload_name": f"{run_slug}-{job_id}-{role}-{sha[:8]}.png",
+        })
+    job: dict[str, object] = {
         "job_id": job_id,
         "chapter": chapter,
         "clip": number,
         "provider_duration_sec": duration,
-        # 애셋은 항상 1개다 (Omni 참조 이미지)
-        "image": {
-            "path": str(image_path.resolve()),
-            "sha256": image_sha,
-            "upload_name": f"{run_slug}-{job_id}-{image_sha[:8]}.png",
-        },
+        # Flow 설정 팝업에서 눌러야 할 입력 모드 라벨 그대로 ("프레임" / "애셋")
+        "flow_input_mode": flow_input_mode,
+        "asset_count": len(images),
+        # 첨부 순서가 곧 첫 프레임 → 끝 프레임 순서다
+        "images": images,
         "prompt_path": str(prompt_path.resolve()),
         "prompt_single_line": single_line,
         "prompt_single_line_sha256": sha256_text(single_line),
         "prompt_single_line_length": len(single_line),
         "prompt_original_sha256": sha256_text(raw_prompt),
     }
+    return job
 
 
 def submission_order(jobs: list[dict[str, object]]) -> list[str]:
     """설정이 같은 작업을 묶어 Flow 설정 변경 횟수를 줄인다.
 
+    길이와 입력 모드가 둘 다 같아야 설정을 그대로 두고 이어 제출할 수 있다.
     먼저 등장한 그룹 순서는 보존하므로 대본 순서가 크게 뒤집히지 않는다.
     """
-    grouped: dict[int, list[str]] = {}
+    grouped: dict[tuple[int, str], list[str]] = {}
     for job in jobs:
-        grouped.setdefault(int(job["provider_duration_sec"]), []).append(str(job["job_id"]))
+        key = (int(job["provider_duration_sec"]), str(job["flow_input_mode"]))
+        grouped.setdefault(key, []).append(str(job["job_id"]))
     return [job_id for group in grouped.values() for job_id in group]
 
 
@@ -160,8 +198,8 @@ def main() -> int:
     if not chapter_dir.is_dir():
         sys.exit(f"챕터 폴더가 없습니다: {chapter_dir}")
 
-    specs: list[tuple[int, int]] = []
-    seen: set[int] = set()
+    specs: list[tuple[str, int]] = []
+    seen: set[str] = set()
     for raw in args.clip:
         number, duration = parse_clip_spec(raw)
         if number in seen:
@@ -177,17 +215,19 @@ def main() -> int:
     out_dir = run_dir / "flow-browser-runs" / args.run_name / f"ch{args.chapter}"
     upload_dir = out_dir / "uploads"
     for job in jobs:
-        image = job["image"]
-        upload_path = upload_dir / image["upload_name"]
-        clone_or_copy(Path(image["path"]), upload_path)
-        image["upload_path"] = str(upload_path)
+        for image in job["images"]:
+            upload_path = upload_dir / image["upload_name"]
+            clone_or_copy(Path(image["path"]), upload_path)
+            image["upload_path"] = str(upload_path)
 
     order = submission_order(jobs)
     fingerprint = sha256_text(json.dumps(
-        [[j["job_id"], j["prompt_single_line_sha256"], j["image"]["sha256"],
-          j["provider_duration_sec"]] for j in jobs],
+        [[j["job_id"], j["prompt_single_line_sha256"],
+          [i["sha256"] for i in j["images"]],
+          j["provider_duration_sec"], j["flow_input_mode"]] for j in jobs],
         ensure_ascii=False, sort_keys=True,
     ))
+    modes = {str(j["flow_input_mode"]) for j in jobs}
 
     manifest = {
         "schema_version": 1,
@@ -197,11 +237,11 @@ def main() -> int:
         "fingerprint": fingerprint,
         "settings": {
             "media_type": "video",
-            "input_mode": "assets",
+            # 섞여 있으면 작업마다 job의 flow_input_mode / asset_count 를 보고 설정한다
+            "flow_input_mode": modes.pop() if len(modes) == 1 else "mixed",
             "aspect_ratio": args.aspect,
             "model": "Omni Flash",
             "count": 1,
-            "asset_count": 1,
             "poll_interval_sec": 15,
             "slate_selector": '[data-slate-editor="true"]',
             "add_button_accessible_name": "add_2 만들기",
@@ -233,6 +273,9 @@ def main() -> int:
         "job_count": len(jobs),
         "fingerprint": fingerprint[:12],
         "submission_order": order,
+        # 화면에서 눌러야 할 입력 모드를 작업별로 보여준다 (1장=프레임, 2장=애셋)
+        "flow_input_mode": {j["job_id"]: f'{j["flow_input_mode"]}({j["asset_count"]}장)'
+                            for j in jobs},
         "prompt_lengths": {j["job_id"]: j["prompt_single_line_length"] for j in jobs},
     }, ensure_ascii=False, indent=2))
     return 0
