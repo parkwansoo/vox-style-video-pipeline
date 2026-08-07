@@ -229,11 +229,28 @@ AskUserQuestion 한 번으로 묶어 사용자에게 확인받는다** (2026-08-
 - 각 클립에 대해 기록한다: 구간 텍스트, seg_start/seg_end, 클립 길이(4/6),
   공인 등장 여부. → `output/<run>/ch<N>/plan.md`에 표로 저장.
 
+**초안이 나오면 `references/retention-review.md`를 읽고 화면 제안을 2차
+심사한다** (2026-08-07 도입). 분할(동기화·기계 제약)은 그대로 두고, 화면
+제안이 직역에서 멈추지 않았는지 검사한다 — 훅, 단조 구간(여정 재구성),
+인물 콜백, 보상 배치, 컷별 변화, 제품 타이밍, 마지막 컷. 역동성이 필요한
+컷에는 다중 이미지(두 프레임 선생성 / 체인)를 배정한다. 검토 결과는
+plan.md의 `## 리텐션 검토` 섹션에 남긴다.
+
 ## 5. 클립 이미지 생성
 
 `references/image-prompt-guidelines.md`(Paper Diorama 프롬프트 시스템)와
 `references/pipeline-rules.md`(이미지 프롬프트 구성·공인 규칙)를 **반드시
 읽고** 프롬프트를 작성한다.
+
+`references/generation-craft.md`(충실도 예산·재시도 규율·엔딩 프로파일·
+두 프레임 작법·숏 사이즈 취약점)를 이미지·영상 프롬프트 작성 전에 읽는다 —
+클립6 인물 소실·clip8/9 3회 실패 같은 실측 사건들의 재발 방지책이다.
+
+`references/image-prompt-options.md`는 **선택 블록 모음**이다 — 기본 조립에는
+넣지 않으며, 아래 상황에 걸릴 때만 읽어 골라 붙인다. 세포·조직이 화면을
+차지하는 컷(구슬 격자 표현, 표피·각질층 유지), 또는 컷 사이에 색이 번지고
+진해지는 진행을 보여줘야 할 때(영상이 변화를 만들 수 있게 이미지를 "변화 전"
+상태로 잡는 법)다.
 
 이미지는 **Codex CLI의 내장 이미지 생성(ChatGPT 구독 OAuth, gpt-image-2)**으로
 만든다. API 키·업로드 불필요 — 스타일 시트는 로컬 파일로 첨부된다.
@@ -251,6 +268,21 @@ AskUserQuestion 한 번으로 묶어 사용자에게 확인받는다** (2026-08-
 ```bash
 .venv/bin/python3 .claude/skills/vox-video/scripts/gen_image.py --prompt-file ... --style-ref assets/style_reference.png --ref assets/products/<제품>/reference.png --out ...
 ```
+
+**이미 통과한 컷의 재질·색만 고칠 때는** `--revise`에 이전 렌더본을 넘긴다.
+구도(카메라·배치·크기·실루엣)를 붙잡아 둔 채 프롬프트가 지시한 부분만 다시
+그리므로, 새로 생성해 구도를 잃는 일이 없다. 프롬프트에는 바꿀 것을 명시하고
+유지할 것("~ stay exactly as they are")도 함께 적는다.
+
+```bash
+cp .../clip3.png .../clip3_원본.png   # 참조본은 따로 남긴다 (출력이 원본을 덮어써도 안전)
+.venv/bin/python3 .claude/skills/vox-video/scripts/gen_image.py --prompt-file .../clip3_img_v2.txt --style-ref assets/style_reference.png --revise .../clip3_원본.png --out .../clip3_v2.png --aspect 9:16
+```
+
+스타일 시트의 재질 규정을 이겨야 할 때는 프롬프트에 `TONE:` 블록을 따로 두어
+무엇을 덮어쓰는지 밝힌다. 예: mg-bodylab 시트는 피부 단면을 *wet pinks*로
+규정하는데, 그대로 두면 진피가 생살처럼 렌더된다 (2026-08-05 기미 원인 편에서
+5컷 교정).
 
 **세로(9:16) 스타일이면** 세 스크립트 모두에 비율을 넘긴다. 기본값은 16:9라
 가로 스타일에서는 아무것도 붙이지 않는다.
@@ -287,7 +319,9 @@ AskUserQuestion 한 번으로 묶어 사용자에게 확인받는다** (2026-08-
 
 `references/video-prompt-guidelines.md`(STYLE BLOCK → SHOT → AUDIO → AVOID
 4블록 시스템)와 `references/pipeline-rules.md`를 **반드시 읽고** 프롬프트를
-작성한다.
+작성한다. `references/generation-craft.md`도 함께 본다 — 특히 **엔딩
+프로파일**(체인의 앞 컷은 모션이 살아있게, 제품 컷은 hero hold, 단독 컷은
+resolve)과 재시도 규율(같은 결함 2번이면 프롬프트 재작성).
 
 ```bash
 # 일반 클립 — Gemini API 직접 호출(gemini-omni-flash-preview), 이미지 = 참조
@@ -368,6 +402,36 @@ API보다 취약하고 사람 개입이 필요하다. 절차는
   대체하면 안 된다(프레임 반올림 드리프트, 12클립 실측 +0.115s). 합본 없이
   timeline만 갱신하려면 `--timeline-only` (final.mp4는 건드리지 않는다)
 
+## 7.2 Flow 워터마크 제거 (Flow로 만든 클립이 하나라도 있으면 필수)
+
+Flow는 Pro 구독에서도 워터마크를 못 끈다. 생성 영상 **우하단 안쪽에 4각별**이
+반투명으로 합성돼 나오고 위치는 고정이다. 광고로 쓰려면 지운다.
+
+```bash
+.venv/bin/python3 .claude/skills/vox-video/scripts/remove_flow_watermark.py \
+  --in output/<run>/final.mp4 --out output/<run>/final_wm.mp4 --check
+```
+
+- **합본 뒤, 자막 앞에 한 번만** 돌린다. 클립마다 돌리면 재인코딩이 한 번 더
+  들어가 화질이 깎이고, 자막 뒤에 돌리면 글자가 보간에 뭉개진다
+- 720x1280은 실측 상자(`x=575 y=1134 w=56 h=52`)를 그대로 쓴다. 다른 해상도는
+  비례 환산하되 **Flow가 해상도마다 같은 상대 위치에 넣는지는 미확인**이므로
+  `--check`로 눈 검수한다. 위치가 다르면 `--box x,y,w,h`로 직접 지정
+- `--check`는 적용 전후 우하단을 4개 시점에서 확대해 나란히 붙인 시트를 만든다
+- API(omni)로 만든 클립에는 워터마크가 없다. 섞여 있어도 그냥 돌리면 된다 —
+  워터마크가 없는 구간은 그 자리가 배경이라 지워도 손해가 없다
+
+**왜 delogo인가** (2026-08-06 실측, 세 방식 비교):
+- `delogo`(사각형 보간) — 채택. 세 시점 모두 잔상 없이 깨끗
+- `removelogo`(별 모양 마스크) — 별 윤곽 잔상이 남고 delogo보다 더 흐릿하다.
+  반투명 테두리가 마스크 밖에 남기 때문이며, 임계값을 낮추면 잡음까지 잡혀
+  결국 사각형과 같아진다
+- 알파 역산(합성 이전 복원) — 초록·자홍 얼룩. 균일 배경 표본이 7장뿐이라
+  픽셀별 색 추정이 흔들렸고(채널 표준편차 33·27·56), H.264 압축 잡음도 걸림돌
+
+상자 크기도 후보 4개를 비교해 잔상 없이 가장 작은 값을 골랐다. 더 줄이면
+(50x44, 46x40) 별의 위아래 뿔이 삐져나와 세로 줄무늬 잔상이 남는다.
+
 ## 7.5 자막 (기본 ON, 2026-08-04 도입)
 
 words.json(대본 정본에 정렬된 어절 타이밍)으로 자막을 만들어 final.mp4 위에
@@ -379,6 +443,8 @@ words.json(대본 정본에 정렬된 어절 타이밍)으로 자막을 만들�
 node .claude/skills/vox-video/scripts/make_captions.mjs --run output/<run>
 # ② 렌더 — final.mp4 위에 자막 (해상도·fps는 입력 영상을 그대로 따름)
 node subtitler/scripts/render.mjs --run output/<run>   # → final_sub.mp4
+# 7.2 워터마크 제거를 거쳤다면 그 산출물을 입력으로 준다
+node subtitler/scripts/render.mjs --run output/<run> --video final_wm.mp4
 ```
 
 - 최초 1회 `cd subtitler && npm install` 필요 (Remotion, 약 500MB)
