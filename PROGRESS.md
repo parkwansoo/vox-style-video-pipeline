@@ -705,3 +705,41 @@ test-faceoil·test-vgshot(18MB), 교체전 백업 5개(구 final 59.2s 포함), 
 자막본, 프레임시트를 삭제하고 final_sub_v2를 final_sub.mp4로 정본화(자체
 렌더러 산출). 유지: test-E·test-audio(다른 세션 영역), clip5_제품포함_백업.png
 (런 이력), 0804 원본+고화질, captions/timeline(재렌더 재료).
+
+## ch2(브이지샷 광고 챕터) 11클립 전량 확보 + 전체 조립 (2026-08-08)
+
+기미 편 `output/20260802-melasma-causes` ch2 완성. 사용자 검수에서 잡힌 오류
+3건을 프롬프트 수정으로 해결하고 나머지 클립을 전부 생성·조립했다.
+
+**오류 수정 (원인 → 처방):**
+- clip3 화살 변형: 프롬프트의 "FAST AS ARROWS"·AUDIO "volley of arrows"가
+  실제 화살촉·깃털을 유도 → '화살' 단어 전부 제거, 형태 고정문("thin
+  elongated oval... keeps this EXACT shape") + AVOID(no arrows/arrowheads/
+  fletching, no hairs from pores) 이중 잠금. v3 성공
+- clip3 끝의 모공 털: 같은 재생성에서 "no hairs, fibers or fuzz... to the
+  very last frame"으로 함께 해결
+- clip7 기미 진해짐: "fade gradually"만으론 모델이 '진해졌다 옅어지는 아크'를
+  만듦 → 단조 감소 제약("moves in ONE DIRECTION ONLY... every moment shows
+  less pigment") + AVOID(no darkening at any point). v2 성공
+- 교훈: 속도·강도 비유에 구체 사물(화살/총알)을 쓰면 그 사물이 그려진다.
+  비유 대신 순수 속도 서술 + 형태 고정문을 쓴다
+
+**체인 오염 처리:** clip3 v2의 화살 엔딩에서 추출했던 clip3b_first가 오염
+→ clip3b 영상도 화살로 생성돼 폐기(clip3b_v1). 새 clip3 v3 끝프레임 재추출
++ clip3b_end 이미지도 재생성(gen_image.py, 뾰족 테이퍼 강조) 후 재제출 성공.
+
+**신규 생성:** clip9(병이 손에서 빠져나와 회오리 궤도, 측면 무텍스트 검증),
+clip9b(CTA 팝+1회 스파클), clip8(클로즈업→광각 제품 제시, clip7 v2 끝프레임
+체인). 재생성 포함 이번 세션 크레딧 42 (7×6건).
+
+**조립:** `ch2/manifest_ch2.json` 작성(plan.md seg 값 그대로),
+`assemble.py --size 720x1280 --max-rate 2.3` → `ch2/final_ch2.mp4`
+29.37s/11클립, 배속 1.04~2.3x, clip9b 잔여 0.29s는 의도된 엔딩 홀드.
+
+**운영 노트:** Flow edit URL 콜드 진입은 client-side exception을 일으킴 —
+다운로드는 그리드 카드 호버 ⋮ → 다운로드 → 720p 경로가 안정적. 카드의
+"프롬프트 재사용" 버튼 오클릭 시 입력창에 프롬프트+이미지가 채워지므로
+반드시 ×로 비우고 진행 (조기 제출 위험).
+
+**다음:** 사용자 눈검수 → ch1+ch2 합본 → 워터마크 제거 → 자막(20번 렌더러
+경로, joyful-gliding-corbato 계획) → 음악 믹스.
