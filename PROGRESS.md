@@ -743,3 +743,42 @@ clip9b(CTA 팝+1회 스파클), clip8(클로즈업→광각 제품 제시, clip7
 
 **다음:** 사용자 눈검수 → ch1+ch2 합본 → 워터마크 제거 → 자막(20번 렌더러
 경로, joyful-gliding-corbato 계획) → 음악 믹스.
+
+## 기미 편 최종본 완성 — ch1+ch2 합본·워터마크 제거·BGM·자막 (2026-08-09)
+
+`output/20260802-melasma-causes/final_전체_자막.mp4` (62.44s, 1080x1920, 30fps).
+
+**ch2 잔여 오류 3건 수정 후 확정** (사용자 검수 지적):
+- clip1_end 모공 털: 이미지 프롬프트가 스피큘을 "thin slender sliver"로만
+  규정해 길고 가는 털로 렌더됨 → "쌀알처럼 굵고 짧은 스터브(short sturdy,
+  thick like a grain of rice)" + AVOID(hair/whisker/filament) 후 재생성,
+  영상도 6s 재생성
+- clip8 병 색·피부톤 변화: first/end 첨부는 정상이었고 프롬프트에 병 색
+  고정문이 없어 Omni가 노란 액체를 무색으로 바꿈. v2에서 색은 잡혔으나
+  라벨을 지어냄(VITAMIN-C/VIEAND PLIVCOLE) → v3에서 라벨 문자열을 프롬프트에
+  그대로 적고("HEGI, LIGHT DROPS, VG SHOT AMPOULE") 후반 절반을 정지 홀드로
+  지시해 해결
+- clip9b 병 색: 동일 원인·동일 처방
+- 교훈: 두 프레임 보간에서 **정체성 요소(제품 색·라벨 문자열)는 이미지만으로
+  전달되지 않는다.** 첨부와 별개로 프롬프트에 못박아야 한다
+
+**후처리 순서 확정** (사용자 문의로 정리):
+워터마크 제거 → 캡컷 BGM → Remotion 자막. 근거는 ①워터마크는 캡컷
+재인코딩 전에 지워야 압축 아티팩트 없이 깨끗함 ②20번 `--bg-video`는
+배경 영상 오디오를 volume:1로 통과시키고 리모션 음성·BGM을 비우므로
+캡컷 믹스가 그대로 살아남음 ③자막을 먼저 구우면 재인코딩 2회 + 타이밍
+수정 불가. 캡컷 작업 시 **길이 불변**이 전제 (트리밍·속도조정 금지).
+
+**20번 렌더러 묶음 실제 요구 파일** (설계서 기록보다 많음):
+`1.음성/`에 captions.json + meta.json + **script-clean.txt + voice.wav**가
+모두 있어야 buildProps가 통과한다. 뒤 둘은 bg-video 모드에서 쓰이지 않지만
+존재 검사를 받는다. script-clean은 ch1+ch2 대본 연결, voice.wav는 합본
+오디오 추출로 채웠다.
+
+**검수 결과**: 자막 54조각, 폭 초과 0, 대본 대비 오탈자 0. 싱크는 1.0s /
+31.5s / 33.5s(챕터 경계) / 61.0s 네 지점 모두 captions.json 기대값과 일치.
+캡컷 편집본은 HEVC였으나 Remotion이 OffthreadVideo(ffmpeg 경유)를 써서
+변환 없이 읽혔다.
+
+**남은 것**: 자막이 의도(한 줄)와 달리 일부 두 줄로 감긴다 — avail_px
+예산과 실제 렌더 폭이 어긋난 듯. 품질 문제는 아니라 사용자 판단 대기.
