@@ -49,6 +49,13 @@ When you call the image generation tool, pass the ENTIRE prompt below to it VERB
 
 {prompt}"""
 
+# --ref 로 이미지를 붙였을 때 프롬프트 앞에 끼우는 설명. 시트는 스타일 정의
+# 문서라 레퍼런스를 "따라 그릴 대상"이 아니라 "이 시각 언어의 실제 예시"로
+# 넘겨야 한다. 그러지 않으면 레퍼런스 장면을 패널에 그대로 베낀다.
+REFS_BLOCK = """The attached image(s) are real examples of the visual language this sheet must define. Read the render style off them - how surfaces, skin, hair, materials and lighting are made - and apply that rendering to every panel you draw. Do NOT copy their scenes, their subjects, their crops or any text in them; they are evidence of the style, not content for the sheet.
+
+"""
+
 REQUIRED = [
     "system_name", "series_type", "surface", "mood", "type_specimen",
     "type_quality", "palette", "color_rules", "components",
@@ -138,16 +145,21 @@ def build_prompt(dna, subjects=None):
     )
 
 
-def render(prompt, out_path, timeout=600):
-    """Render the sheet with Codex's built-in image generation (subscription OAuth)."""
+def render(prompt, out_path, timeout=600, refs=()):
+    """Render the sheet with Codex's built-in image generation (subscription OAuth).
+
+    `refs` are style evidence images (e.g. frames from the source series). They
+    teach the render style; REFS_BLOCK tells the model not to copy their scenes.
+    """
     out_path = Path(out_path).resolve()
     out_path.parent.mkdir(parents=True, exist_ok=True)
     codex = os.environ.get("CODEX_BIN", "codex")
-    cmd = [
-        codex, "exec", "--skip-git-repo-check", "-s", "workspace-write",
-        "-C", str(out_path.parent), "--",
-        RENDER_WRAPPER.format(name=out_path.name, prompt=prompt),
-    ]
+    body = (REFS_BLOCK if refs else "") + prompt
+    cmd = [codex, "exec", "--skip-git-repo-check", "-s", "workspace-write",
+           "-C", str(out_path.parent)]
+    for ref in refs:
+        cmd += ["-i", str(Path(ref).resolve())]
+    cmd += ["--", RENDER_WRAPPER.format(name=out_path.name, prompt=body)]
     last = None
     for attempt in range(2):
         try:
@@ -170,7 +182,13 @@ def main():
     p.add_argument("--out-prompt", help="조립된 프롬프트를 저장할 경로")
     p.add_argument("--render", help="이 경로로 스타일 시트 이미지를 생성")
     p.add_argument("--subjects", help="시트 샘플 소재의 주제 (선택). 없으면 자유 생성")
+    p.add_argument("--ref", action="append", default=[], metavar="PATH",
+                   help="렌더 계열을 가르칠 스타일 예시 이미지 (반복 지정 가능). "
+                        "장면이 아니라 렌더 방식만 참고하게 지시된다")
     args = p.parse_args()
+    for raw in args.ref:
+        if not Path(raw).is_file():
+            sys.exit(f"참조 이미지가 없습니다: {raw}")
 
     dna = json.loads(Path(args.dna).read_text(encoding="utf-8"))
     prompt = build_prompt(dna, subjects=args.subjects)
@@ -187,7 +205,7 @@ def main():
     if args.out_prompt:
         result["prompt"] = args.out_prompt
     if args.render:
-        result["sheet"] = render(prompt, args.render)
+        result["sheet"] = render(prompt, args.render, refs=args.ref)
     print(json.dumps(result, ensure_ascii=False))
 
 

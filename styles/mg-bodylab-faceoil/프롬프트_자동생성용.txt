@@ -1,0 +1,19 @@
+MASTER STYLE SHEET - MG-BODYLAB-FACEOIL visual system, one 16:9 reference board. A single polished art-direction sheet defining the visual language for a vertical skincare curiosity explainer series. Editorial grid, consistent margins, section labels. Baked-in typography is intentional here (this is a style guide).
+
+SUBJECT THEMES: the sample subjects on this sheet relate to melasma on the cheekbones, dry flaking skin with foundation cracking on it, an amber facial oil absorbing into skin, a clear glass dropper bottle of yellow jasmine oil.
+
+SURFACE & MOOD: seamless sky-blue studio cyclorama with a soft vertical gradient, no horizon or corners. Mood: clinical, curious, hyper-close.
+
+TYPE SPECIMEN PANEL: H1 sample "SHE NEVER GOT A PROCEDURE" in heavy rounded sans caps with a thick dark outline; a caption sample "face oil" in the same face, smaller, pinned to the lower third. Typography heavy, outlined, no warped letters.
+
+PALETTE STRIP: labeled swatches - Cyclorama Blue #4B8CC6, Skin Light #E9D3BF, Skin Mid #C9A691, Hair Umber #6E5846, Caption White #FFFFFF. Cyclorama Blue is background only and never touches a subject; Caption White is type only; skin tones carry the midground.
+
+COMPONENT ZOO PANEL: a stylised 3D character face caught mid-reaction; a skin macro with pores and dry flaking scales; a skin cutaway whose dermis is a lattice of clear glass spheres; hands entering frame to hold a prop; a clear glass dropper bottle of yellow oil, gold collar, white bulb; a heavy white caption block with a dark outline. All share one construction logic: stylised 3D character renders, never photographic - smooth subsurface skin, sculpted hair as soft masses, rounded simplified anatomy, shallow macro depth of field.
+
+MINI-SCENE PANEL: 3 small example frames - (a) an oil bead landing on dry skin and spreading, (b) melasma patches fading pale on a cheekbone, (c) a glass pipette with a bulbous tip releasing one bead. Same lighting and finish throughout.
+
+MOTION THUMBNAILS: 4 tiny storyboard frames with arrows only: slow push-in on a reacting 3D face / an oil bead lands and spreads across skin / a cutaway peels open to the sphere lattice beneath / a pipette tilts and releases one bead.
+
+One panel shows THE STAGE: the persistent background world every clip lives on - a seamless sky-blue cyclorama, softly graded, evenly lit, empty and ready for figures and props to enter. No midground elements present in this panel.
+
+FINISH: soft even studio lighting, subsurface skin shading, shallow macro depth of field, no harsh shadows, no photographic realism or photo textures, no wet pink flesh in the cutaway, no visible horizon. No watermarks, no lorem ipsum, no unrelated logos, no random gibberish text - every visible word is either one of the samples above or a short editorial panel label naming that panel or component.

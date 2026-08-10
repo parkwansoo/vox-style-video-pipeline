@@ -50,6 +50,13 @@
   - Gemini TTS 음성이면 기존 `sentence` 프리셋 그대로 맞을 가능성 높음(무음 성격 동일). 사람 녹음용 `human` 프리셋·목표길이 역산은 그때 가서 판단
   - 라우드니스 정규화(-16 LUFS) 필요 여부 확인 — assemble이 narration-volume 1.0으로 섞으므로 원음이 작으면 BGM에 묻힌다
 
+- [ ] 2026-08-10 **[관찰 대기] `make_sheet.py --ref` 효과·부작용** — 렌더에 이미지를 직접 붙여 렌더 계열을 교정하는 통로. 표본 1회(faceoil)라 절차로 승격하지 않고 옵션 존재만 SKILL 4단계에 기록했다. 다음 스타일에서 한 번 더 쓰면 판단이 선다 — .claude/skills/style-sheet/scripts/make_sheet.py
+  - 효과: DNA에 "soft-lit 3D renders"를 써도 포토리얼로 나오던 것이 시리즈 프레임 2장 첨부로 교정됐다. 텍스트로 옮겨지지 않는 렌더 질감의 통로
+  - 부작용: 레퍼런스 속 인물이 시트 패널에 꽤 닮게 나왔다. "장면은 베끼지 말라" 지시로 완전히 막히지 않는다
+  - 수정 경로는 여럿(외부 도구 / 텍스트 지시로 DNA 수정 / --ref)이고 무엇이 어긋났느냐로 고른다 — 순서를 규칙으로 박지 않기로 함
+- [ ] 2026-08-10 mg-bodylab-faceoil 프롬프트가 2,615자로 경고 임계값 초과 (기존 3종 1,782~2,258) — construction_logic·finish를 늘린 탓. 렌더는 성공했으나 슬롯 압축 여지 있음 — styles/mg-bodylab-faceoil/style_dna.json
+
+
 ## 완료
 
 - [x] 2026-08-03 **나레이션 무음 압축을 tts.py의 ASR 직전에 도입** (132cab4) — 3영상 모두 실발화 55~57%/무음 27~32%인 TTS 구조 문제. `compress_silence.py` 신설, 프리셋 sentence(기본)/tight. `words.json`이 압축 기준이 되어 뒤 단계 무변경, 배속이 불필요해졌다

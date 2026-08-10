@@ -1,0 +1,84 @@
+{
+ "system_name": "MG-BODYLAB-FACEOIL",
+ "series_type": "vertical skincare curiosity",
+ "surface": "seamless sky-blue studio cyclorama with a soft vertical gradient, no horizon or corners",
+ "mood": [
+  "clinical",
+  "curious",
+  "hyper-close"
+ ],
+ "type_specimen": "H1 sample \"SHE NEVER GOT A PROCEDURE\" in heavy rounded sans caps with a thick dark outline; a caption sample \"face oil\" in the same face, smaller, pinned to the lower third",
+ "type_quality": [
+  "heavy",
+  "outlined"
+ ],
+ "palette": [
+  {
+   "name": "Cyclorama Blue",
+   "hex": "#4B8CC6"
+  },
+  {
+   "name": "Skin Light",
+   "hex": "#E9D3BF"
+  },
+  {
+   "name": "Skin Mid",
+   "hex": "#C9A691"
+  },
+  {
+   "name": "Hair Umber",
+   "hex": "#6E5846"
+  },
+  {
+   "name": "Caption White",
+   "hex": "#FFFFFF"
+  }
+ ],
+ "color_rules": "Cyclorama Blue is background only and never touches a subject; Caption White is type only; skin tones carry the midground",
+ "components": [
+  "a stylised 3D character face caught mid-reaction",
+  "a skin macro with pores and dry flaking scales",
+  "a skin cutaway whose dermis is a lattice of clear glass spheres",
+  "hands entering frame to hold a prop",
+  "a clear glass dropper bottle of yellow oil, gold collar, white bulb",
+  "a heavy white caption block with a dark outline"
+ ],
+ "construction_logic": "stylised 3D character renders, never photographic - smooth subsurface skin, sculpted hair as soft masses, rounded simplified anatomy, shallow macro depth of field",
+ "mini_scenes": [
+  "an oil bead landing on dry skin and spreading",
+  "melasma patches fading pale on a cheekbone",
+  "a glass pipette with a bulbous tip releasing one bead"
+ ],
+ "motion_signature": [
+  "slow push-in on a reacting 3D face",
+  "an oil bead lands and spreads across skin",
+  "a cutaway peels open to the sphere lattice beneath",
+  "a pipette tilts and releases one bead"
+ ],
+ "stage": "the persistent background world every clip lives on - a seamless sky-blue cyclorama, softly graded, evenly lit, empty and ready for figures and props to enter",
+ "finish": [
+  "soft even studio lighting",
+  "subsurface skin shading",
+  "shallow macro depth of field",
+  "no harsh shadows",
+  "no photographic realism or photo textures",
+  "no wet pink flesh in the cutaway",
+  "no visible horizon"
+ ],
+ "confidence": {
+  "palette": "high — extract_palette.py 실측 (동일 레퍼런스 13장이므로 mg-bodylab 값 재사용)",
+  "construction_logic": "high — 13장 전체에서 관찰 (mg-bodylab 유지)",
+  "stage": "medium-high — 13장 중 9장에서 동일 배경",
+  "type_specimen": "medium — 서체·배치는 관찰, 문구는 시리즈 주제로 창작",
+  "mini_scenes": "medium — 화면 형식은 관찰, 소재는 시리즈 주제로 창작",
+  "motion_signature": "low — 정지 이미지에서 추론 (mg-bodylab 계승)",
+  "components": "high — 제품 실물 사진과 시리즈 프레임 2장으로 교정 (투명 유리·벌버스 피펫 끝·3D 캐릭터 렌더)"
+ },
+ "rejected": [
+  "components의 'centred to camera' — mg-bodylab에서 전 클립 정면 고착을 유발해 제외하고 'caught mid-reaction'으로 교체 (2026-08-10)",
+  "vgshot 변형의 스피큘·앰플 소재 — 이 편의 제품은 오일이라 제외",
+  "1차 렌더의 포토리얼 인물 — Zack D. Films 계열은 스타일화된 3D 캐릭터다. construction_logic에 'never photographic'을 넣고 레퍼런스 2장을 --ref로 첨부해 교정 (2026-08-10)",
+  "'frosted' 병 — 실물은 투명 유리다 (PROGRESS 2026-08-04 제품 컷 실측: 투명 유리·오일 2/3·피펫 투시·골드 칼라·흰 벌브). 근거 없이 창작했던 값을 실측으로 교체",
+  "mg-bodylab의 'cutaway ... in wet pinks' — 진피를 구슬 격자로 바꾸기로 한 결정 반영 (TODO 2026-08-06). 시트가 구슬을 보여주면 클립마다 넣던 교정 블록이 불필요해진다"
+ ]
+}
