@@ -55,6 +55,9 @@
   - 부작용: 레퍼런스 속 인물이 시트 패널에 꽤 닮게 나왔다. "장면은 베끼지 말라" 지시로 완전히 막히지 않는다
   - 수정 경로는 여럿(외부 도구 / 텍스트 지시로 DNA 수정 / --ref)이고 무엇이 어긋났느냐로 고른다 — 순서를 규칙으로 박지 않기로 함
 - [ ] 2026-08-10 mg-bodylab-faceoil 프롬프트가 2,615자로 경고 임계값 초과 (기존 3종 1,782~2,258) — construction_logic·finish를 늘린 탓. 렌더는 성공했으나 슬롯 압축 여지 있음 — styles/mg-bodylab-faceoil/style_dna.json
+- [ ] 2026-08-10 **프레이밍 메뉴 희석 방지책 검토** — faceoil clip1 초판이 정면 정적으로 나온 원인: HERO LOW를 메뉴 원문("wide-angle lens from below the eye line, camera close and tilted up")이 아니라 "lens a little below her eye line"으로 희석해 썼고, 정면 금지 AVOID도 없었다. AVOID(어안·콧구멍)만 원문대로 넣어 왜곡 방지만 세게 걸린 것도 역효과. v4에서 통한 처방: 전용 CAMERA 블록 + 앵글을 '보이는 결과'(턱 아래 보임·어깨가 렌즈 아래)로 서술 + "centred, level, symmetrical portrait" 금지. 이번 런 인물 컷 10장에 적용했고, 결과 확인 후 pipeline-rules 프레이밍 절에 "메뉴 문구는 원문 그대로 + 반대 방향 AVOID 필수"로 승격 검토 — output/20260810-faceoil-review/ch1/clip1_img.txt
+- [ ] 2026-08-11 **ZDF 스타일 적용 후보 4건** (A 편집 줌인·셰이크 / B 스타일 앵커 문구 / C 구도 재설계·보류 / D 대본 코퍼스) — 조사 완료, 적용 대기. 상세: docs/zdf-스타일-조사.md
+- [ ] 2026-08-10 **[관찰 대기] identity ref 색감 드리프트 수치 검증** — ref를 붙이면 색 세계가 밀린다 (clip1 v5: 배경 채도 Δ10.6%p, 기미 편 ch2 인물 피부톤 미세 변동). 방어 2중: ①프롬프트에 팔레트 고정 문구("Match the reference's colour world...") ②생성 후 check_tone.py로 정본 대비 배경 hue/sat·피사체 warmth/밝기 비교 (임계값은 v4/v5 실측 보정). 이번 런에서 효과 확인되면 스크립트를 스킬로 승격 — output/20260810-faceoil-review/check_tone.py
 
 
 ## 완료
