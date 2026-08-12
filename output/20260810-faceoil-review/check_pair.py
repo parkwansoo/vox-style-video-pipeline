@@ -23,9 +23,12 @@ from PIL import Image
 RUN = Path(__file__).parent / "ch1"
 
 # (first, end, 크기 규칙)
+# tilted: first가 기울어진 병이라 bbox 비교 무효 — 육안 판정만 (08-12 실측 2건:
+# clip3 육안 일치인데 Δ0.30 FAIL, clip6b는 FAIL을 따라 재생성했다가 실물과 더
+# 멀어져 사용자 지적으로 r1 복원)
 PAIRS = [
-    ("clip3_first", "clip3_end", "size_same"),
-    ("clip6b_first", "clip6b_end", "size_same"),
+    ("clip3_first", "clip3_end", "tilted"),
+    ("clip6b_first", "clip6b_end", "tilted"),
     ("clip17_first", "clip17_end", "size_free"),
 ]
 
@@ -48,6 +51,9 @@ def bottle_box(name):
 def main():
     failed = []
     for f, e, rule in PAIRS:
+        if rule == "tilted":
+            print(f"SKIP {f}↔{e}: 기울어진 쌍 — bbox 무효, 육안 판정")
+            continue
         bf, be = bottle_box(f), bottle_box(e)
         if not bf or not be:
             print(f"SKIP {f}↔{e}: 마스크 부족"); continue
