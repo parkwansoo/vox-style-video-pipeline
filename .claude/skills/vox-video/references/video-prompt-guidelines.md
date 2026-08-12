@@ -119,3 +119,24 @@ AVOID: [matching AVOID block]
 - **Reserve ALERT WASH** for one clip per video.
 - **End the sequence on a held tension frame**, not a resolve — e.g. the frozen pin, the trembling summit, the wobbling slab.
 ```
+
+---
+
+## 7. 글자 AVOID 운용 (2026-08-12)
+
+`no warped or gibberish text`는 **생성 오류**를 막는 문구지 글자의 **모션**을
+막는 문구가 아니다. 두 가지를 갈라 쓴다.
+
+| 대상 | 처리 | 문구 예 |
+|---|---|---|
+| 없던 글자 생성 | 금지 | `no text, letters, numbers or captions appearing anywhere` |
+| 제품 라벨 | 잠금 (변형 전례 있음) | `no change to the printed label lines` |
+| 큰 숫자·소품 글자 | **모션 허용** | `it stays 41% throughout and only moves as a whole solid object, no digits morphing, counting up or re-forming` |
+
+허용할 때도 "**하나의 단단한 덩어리로만 움직인다**"를 함께 건다. 이걸 빼면
+모델이 글자를 매 프레임 다시 그리며 값·형태가 흔들린다.
+
+> 근거: 이미지 단계에서 `JUN`·`41%`·라벨 5줄이 전부 정확히 나왔지만
+> (2026-08-12 크롭 검증), 영상은 매 프레임을 다시 그리므로 같은 보장이 없다.
+> 기미 편 push-in에서 라벨이 `VG SHOT`→`VO SHOT`으로 변형된 것이 그 증거다.
+> 그래서 라벨은 잠그되, 강조가 목적인 큰 숫자는 스프링·스탬프 모션을 준다.
