@@ -58,6 +58,8 @@ def main():
     p.add_argument("--aspect", default="16:9", choices=["16:9", "9:16"],
                    help="세로 스타일이면 9:16 (기본 16:9)")
     # 실측(stdin 수정 후): 한 장에 약 60초. 420초면 7배 여유다.
+    p.add_argument("--model", default="",
+                   help="codex 모델. 빈 문자열이면 ~/.codex/config.toml 기본값 사용")
     p.add_argument("--timeout", type=int, default=420)
     args = p.parse_args()
 
@@ -105,7 +107,13 @@ def main():
         prompt=prompt,
     )
     cmd = [codex, "exec", "--skip-git-repo-check", "-s", "workspace-write",
-           "-C", str(out_path.parent), "-i", str(style_ref)]
+           "-C", str(out_path.parent)]
+    # --model을 주면 ~/.codex/config.toml의 기본 모델 대신 그 값을 쓴다(개인 설정 불변).
+    # 2026-08-12: config 기본 모델이 ChatGPT 계정에서 400 not supported를 내 21장이
+    # 실패한 사건이 있었다. 다만 그때는 어떤 모델을 지정해도 같은 에러라 계정 문제였다.
+    if args.model:
+        cmd += ["-m", args.model]
+    cmd += ["-i", str(style_ref)]
     # 첨부 순서가 곧 프롬프트의 FIRST/NEXT/REMAINING이다 — 시트, 이전 렌더본, 정체성 레퍼런스
     if revise_ref:
         cmd += ["-i", str(revise_ref)]
