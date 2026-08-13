@@ -13,6 +13,7 @@
 |---|---|
 | 파이프라인 전체·단계별 절차 | `.claude/skills/vox-video/SKILL.md` |
 | 이미지·영상 프롬프트, 검수 절차 | `references/pipeline-rules.md`, `generation-craft.md` |
+| 씬 설계·전환 문법 (ZDF 실측) | `references/zdf-grammar.md` |
 | 분할 후 화면 2차 심사 | `references/retention-review.md` |
 | 스타일 시트 만들기 | `.claude/skills/style-sheet/SKILL.md` |
 | 제품이 나오는 컷 | `assets/products/<제품>/SPEC.md` |
