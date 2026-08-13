@@ -214,11 +214,15 @@ flow_state.py set --jobs <jobs.json> --job ch1-clip1 --stage completed
 완료 edit에서 원본 MP4를 한 번만 내려받는다. 파일명이 불명확하면 다운로드
 전후의 디렉터리 목록 차이로 새 파일을 찾는다.
 
-내려받은 파일을 우리 파이프라인의 표준 위치로 복사한다. **원본은 옮기거나
-지우지 않는다.**
+내려받은 파일을 표준 위치로 **이동한다(cp가 아니라 mv)** — 다운로드 폴더에
+사본을 남기지 않는다. 페이스오일 편에서 cp를 써서 ~/Downloads에 중복
+10여 개가 쌓였고, 사용자가 직접 정리해야 했다(2026-08-13). Chrome의
+다운로드 폴더를 프로젝트로 바꾸는 방법은 쓰지 않는다 — 브라우저 전체
+설정이라 사용자의 다른 다운로드까지 전부 딸려 오고, "매번 묻기"는 자동화가
+제어할 수 없는 OS 파일 선택창을 띄운다.
 
 ```bash
-cp <다운로드 파일> output/<run>/ch1/clip1.mp4
+mv <다운로드 파일> output/<run>/ch1/clip1.mp4
 flow_state.py set --jobs <jobs.json> --job ch1-clip1 --stage downloaded --download <경로>
 ```
 
