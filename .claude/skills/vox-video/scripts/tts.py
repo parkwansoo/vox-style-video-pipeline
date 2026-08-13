@@ -141,6 +141,30 @@ def resolve_whisper_model():
     return WHISPER_REPO  # 캐시에 없으면 mlx-whisper가 다운로드
 
 
+def normalize_loudness(path):
+    """나레이션 음량을 균일화한다 (구간 편차 평탄화 + 라우드니스 정렬 + 피크 제한).
+
+    근거: 2026-08-13 페이스오일 편에서 TTS 원본이 뒤로 갈수록 작아져
+    70~80초 구간이 앞부분보다 10dB 낮았다(체감 절반). 시청자가 듣고서야
+    발견됐다 — 합성 직후 자동으로 잡는다.
+
+    체인은 실측으로 고른 값이다: dynaudnorm이 구간 편차를 10.2→3.3dB로
+    줄이고, loudnorm I=-13이 숏폼 기준 크기(-15.5 LUFS 결과)로 올리고,
+    alimiter가 True Peak를 -2dBTP 아래로 눌러 BGM 얹을 헤드룸을 남긴다.
+    길이는 샘플 단위로 보존된다(86.090s → 86.090s 실측) — words.json
+    타이밍에 영향 없다.
+    """
+    tmp = path.with_suffix(".norm.mp3")
+    subprocess.run([
+        "ffmpeg", "-y", "-v", "error", "-i", str(path),
+        "-af", "dynaudnorm=f=400:g=15:p=0.95:m=8,"
+               "loudnorm=I=-13:TP=-2:LRA=7,"
+               "alimiter=limit=0.79:level=disabled",
+        "-b:a", "192k", str(tmp),
+    ], check=True)
+    tmp.replace(path)
+
+
 def ffprobe_duration(path):
     out = subprocess.run(
         ["ffprobe", "-v", "error", "-show_entries", "format=duration",
@@ -193,6 +217,8 @@ def main():
                    help="재생 배속. 스타일에 맞춰 지정 (숏폼 1.3, 다큐 1.0). "
                         "배속은 Whisper 분석 전에 적용되므로 words.json이 이미 "
                         "배속된 시간축으로 나오고, 이후 단계는 손댈 필요가 없다")
+    p.add_argument("--no-normalize", dest="normalize", action="store_false",
+                   help="음량 균일화를 끈다 (기본 켜짐 — TTS가 뒤로 갈수록 작아지는 문제 방어)")
     p.add_argument("--no-compress-silence", dest="compress_silence",
                    action="store_false",
                    help="무음 압축을 끈다. 기본은 켜짐 — 나레이션의 27~32%%가 "
@@ -292,6 +318,12 @@ def main():
                   f"문장경계 {compression['at_sentence_end']} / "
                   f"내부 {compression['inside_sentence']} / "
                   f"무보정 {compression['left_untouched']})", file=sys.stderr)
+
+    # 2.5) 음량 균일화 — TTS는 뒤로 갈수록 작게 읽는 경향이 있다(실측 10dB).
+    #      길이가 보존되므로 뒤 단계(정렬·분할·자막)에 영향이 없다.
+    if args.normalize:
+        normalize_loudness(audio_path)
+        duration = ffprobe_duration(audio_path)
 
     # 3) MLX Whisper word timings (local, offline) — 압축했다면 압축본 기준
     asr_words, recognized = transcribe(audio_path, args.language)
