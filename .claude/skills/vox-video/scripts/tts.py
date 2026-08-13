@@ -52,6 +52,23 @@ DEFAULT_TONE = (
 WHISPER_REPO = "mlx-community/whisper-large-v3-turbo"
 
 
+def style_speed():
+    """활성 스타일 NOTES.md의 '권장 배속' 값을 (스타일명, 배속)으로 돌려준다.
+
+    배속 규칙이 문서(스타일 NOTES)에만 있어서, 인박스 진입처럼 대본 단계를
+    건너뛰는 경로에서는 조용히 1.0으로 가던 구멍의 방어선이다 (2026-08-13
+    실사고). 우선순위: --speed 명시 > VOX_TTS_SPEED > 이 값 > 1.0.
+    """
+    root = SCRIPT_DIR.parents[3]
+    try:
+        name = (root / "assets" / "ACTIVE_STYLE").read_text(encoding="utf-8").strip()
+        notes = (root / "styles" / name / "NOTES.md").read_text(encoding="utf-8")
+    except OSError:
+        return None, None
+    m = re.search(r"권장\s*배속\s*([0-9]+(?:\.[0-9]+)?)", notes)
+    return name, (float(m.group(1)) if m else None)
+
+
 def ensure_backend():
     r = subprocess.run(["bash", str(SCRIPT_DIR / "ensure_tts.sh")],
                        capture_output=True, text=True)
@@ -212,9 +229,9 @@ def main():
     p.add_argument("--tone", default=os.environ.get("VOX_TTS_TONE") or DEFAULT_TONE)
     p.add_argument("--base-url", default=os.environ.get("TTS_BASE_URL") or DEFAULT_BASE_URL)
     p.add_argument("--language", default="ko")
-    p.add_argument("--speed", type=float,
-                   default=float(os.environ.get("VOX_TTS_SPEED") or 1.0),
-                   help="재생 배속. 스타일에 맞춰 지정 (숏폼 1.3, 다큐 1.0). "
+    p.add_argument("--speed", type=float, default=None,
+                   help="재생 배속 (숏폼 1.3, 다큐 1.0). 생략하면 활성 스타일 "
+                        "NOTES.md의 '권장 배속'을 자동 적용하고, 그것도 없으면 1.0. "
                         "배속은 Whisper 분석 전에 적용되므로 words.json이 이미 "
                         "배속된 시간축으로 나오고, 이후 단계는 손댈 필요가 없다")
     p.add_argument("--no-normalize", dest="normalize", action="store_false",
@@ -243,6 +260,19 @@ def main():
         return
     if not args.text_file or not args.out_dir:
         p.error("--text-file 과 --out-dir 이 필요합니다 (목록만 볼 때는 --list-voices)")
+
+    if args.speed is None:
+        env_speed = os.environ.get("VOX_TTS_SPEED", "").strip()
+        if env_speed:
+            args.speed = float(env_speed)
+        else:
+            style, speed = style_speed()
+            if speed is not None:
+                args.speed = speed
+                print(f"[tts] 활성 스타일 {style}의 권장 배속 {speed} 적용 "
+                      "(--speed 로 덮어쓰기 가능)", file=sys.stderr)
+            else:
+                args.speed = 1.0
 
     # ffmpeg atempo의 단일 필터 유효 범위
     if not 0.5 <= args.speed <= 2.0:

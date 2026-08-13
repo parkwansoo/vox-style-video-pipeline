@@ -104,7 +104,8 @@ AskUserQuestion 한 번으로 묶어 사용자에게 확인받는다** (2026-08-
   1.0배속은 표본이 1챕터뿐이라 참고치다.
 
   배속은 스타일에 맞춘다 — 차분한 다큐는 1.0, 빠른 숏폼은 1.3.
-  활성 스타일의 `styles/<이름>/NOTES.md`에 권장 배속이 있으면 그것을 따른다.
+  활성 스타일의 `styles/<이름>/NOTES.md`에 권장 배속이 있으면 그것을 따른다
+  (3단계 tts.py가 자동 적용하므로 대본 분량 판단에만 쓰면 된다).
 - Vox 톤: 첫 문장은 훅(의외의 사실·질문), 구체적 수치 1~2개, 짧고 명확한
   문장, 마지막 문장은 다음 챕터로 연결(또는 마지막 챕터면 시사점).
 - **시각화를 염두에 두고 쓴다**: 각 문장이 그림으로 그려질 수 있어야 한다.
@@ -127,12 +128,13 @@ AskUserQuestion 한 번으로 묶어 사용자에게 확인받는다** (2026-08-
 ## 3. 음성 생성 + 타임스탬프
 
 ```bash
-# 기본 (1.0배속)
+# 기본 — 활성 스타일 NOTES.md의 "권장 배속"을 자동 적용한다 (없으면 1.0).
+# 적용 시 "[tts] 활성 스타일 ...의 권장 배속 1.3 적용"이 출력된다
 .venv/bin/python3 .claude/skills/vox-video/scripts/tts.py --text-file output/<run>/ch1/script.txt --out-dir output/<run>/ch1
-# 숏폼 스타일이면 배속 지정
-.venv/bin/python3 .claude/skills/vox-video/scripts/tts.py --text-file output/<run>/ch1/script.txt --out-dir output/<run>/ch1 --speed 1.3
+# 스타일 권장값과 다르게 가야 할 때만 명시한다 (명시가 항상 우선)
+.venv/bin/python3 .claude/skills/vox-video/scripts/tts.py --text-file output/<run>/ch1/script.txt --out-dir output/<run>/ch1 --speed 1.0
 # 사용자가 "타이트하게/더 빠르게"를 요청했을 때만 (임의 판단 금지)
-.venv/bin/python3 .claude/skills/vox-video/scripts/tts.py --text-file output/<run>/ch1/script.txt --out-dir output/<run>/ch1 --speed 1.3 --silence-preset tight
+.venv/bin/python3 .claude/skills/vox-video/scripts/tts.py --text-file output/<run>/ch1/script.txt --out-dir output/<run>/ch1 --silence-preset tight
 ```
 
 **배속은 이 단계에서만 지정하면 되고 뒤 단계는 손대지 않는다.** 배속이 Whisper
