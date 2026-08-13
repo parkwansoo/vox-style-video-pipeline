@@ -37,10 +37,26 @@ export function loadPreset(presetName) {
 
 // 모든 prop을 완전 명시로 만든다 — inputProps에 없는 키는 defaultProps로
 // 채워지는데, 그 잔여값이 자막 폭을 조인 실사고가 있었다(2026-08-04).
+// 강조 단어는 편마다 다르므로 런 폴더의 highlights.json에서 읽는다.
+// 파일이 없으면 빈 배열 — 강조색을 안 쓰던 기존 동작 그대로다.
+// 형식: {"강조단어": ["41%", "미백"], "강조단어2": []}
+// 색은 프리셋의 강조색1(노랑) / 강조색2(빨강)를 쓰고, 토큰이 단어를 포함하면
+// 칠해지므로("기미"가 "기미가"에 걸린다) 자주 나오는 말은 넣지 않는다.
+function loadHighlights(captionsPath) {
+  const p = path.join(path.dirname(captionsPath), "highlights.json");
+  if (!fs.existsSync(p)) return { 강조단어: [], 강조단어2: [] };
+  const h = JSON.parse(fs.readFileSync(p, "utf8"));
+  return {
+    강조단어: Array.isArray(h.강조단어) ? h.강조단어 : [],
+    강조단어2: Array.isArray(h.강조단어2) ? h.강조단어2 : [],
+  };
+}
+
 export function buildInputProps({ src, captionsPath, presetName, asset }) {
   const video = probeVideo(src);
   const captions = JSON.parse(fs.readFileSync(captionsPath, "utf8"));
   const p = loadPreset(presetName);
+  const hl = loadHighlights(captionsPath);
   const inputProps = {
     가로: video.width, 세로: video.height, fps: video.fps, 영상길이ms: video.durationMs,
     폰트: p.fontKey, 글자굵기: p.fontWeight, 글자크기: p.fontSizePct,
@@ -48,7 +64,7 @@ export function buildInputProps({ src, captionsPath, presetName, asset }) {
     // 외곽선은 px 단위라 높이에 비례 보정 (프리셋 기준 1920px)
     외곽선두께: Math.max(1, Math.round(p.strokeWidthPx * video.height / 1920)),
     강조색1: p.highlightColor1, 강조색2: p.highlightColor2,
-    강조단어: [], 강조단어2: [],  // vox 기본: 강조색 미사용 (사용자 확정)
+    강조단어: hl.강조단어, 강조단어2: hl.강조단어2,  // highlights.json이 없으면 빈 배열
     등장효과: p.entrance, 효과세기: p.effectStrength,
     자막높이: p.captionYPct, 안전여백: p.safeMarginPct,
     자막최대너비: p.captionMaxWidthPct,
