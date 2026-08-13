@@ -16,7 +16,8 @@ Manifest JSON format:
       "narration": "output/run/ch1/narration.mp3",
       "clips": [
         {"file": "output/run/ch1/clip1.mp4", "seg_start": 0.0, "seg_end": 5.6},
-        {"file": "output/run/ch1/clip2.mp4", "seg_start": 5.6, "seg_end": 9.3}
+        {"file": "output/run/ch1/clip2.mp4", "seg_start": 5.6, "seg_end": 9.3,
+         "in": 1.2, "out": 4.8}
       ]
     }
   ]
@@ -25,7 +26,12 @@ seg_start/seg_end are times in that chapter's narration.mp3 covering the words
 spoken during that clip. A clip longer than its segment is sped up to fit
 (--no-fit-clips keeps the slack instead); a clip *shorter* than its segment
 cannot be fixed here — clips are never slowed down — so keep the segment within
-the clip's effective length (clip duration minus the 0.25s trim).
+the clip's effective length (used range minus nothing — see below).
+
+Optional per-clip "in"/"out" (seconds in the source file) select which part of
+the generated video to use (keyframe trim, 2026-08-13): generate long (6s),
+keep the good part. Defaults: in = --trim (0.25), out = end of file. Two clips
+may share one file with different ranges (one-take split across segments).
 
 Usage:
   python3 assemble.py --manifest manifest.json --out final.mp4 [--music-dir music]
@@ -252,12 +258,28 @@ def main():
             for ci, ch in enumerate(manifest["chapters"], 1)
             for si, clip in enumerate(ch["clips"], 1)]
     n = len(flat)
-    slacks = []
+    # 키프레임(구간 선택): manifest 클립의 "in"/"out"(초)으로 소스에서 쓸
+    # 구간을 고른다. 생성을 길게(6s) 뽑고 좋은 구간만 쓰는 방식의 짝 —
+    # 배속 상한에 걸리던 짧은 나레이션 구간도 트림으로 해결된다. 같은 파일을
+    # 두 클립이 다른 구간으로 나눠 쓸 수 있다 (원테이크 분배, 2026-08-13).
+    # "in" 생략 시 기본 앞트림(args.trim), "out" 생략 시 파일 끝.
+    ins, outs, slacks = [], [], []
     for _, _, clip in flat:
         if not os.path.exists(clip["file"]):
             sys.exit(f"클립 파일 없음: {clip['file']}")
-        eff = ffprobe_duration(clip["file"]) - args.trim
+        dur = ffprobe_duration(clip["file"])
+        t_in = float(clip.get("in", args.trim))
+        t_out = float(clip.get("out", dur))
+        if not 0 <= t_in < t_out <= dur + 0.05:
+            sys.exit(f"{clip['file']}: in/out({t_in}/{t_out})이 파일 길이 {dur:.2f}s와 안 맞습니다")
+        eff = min(t_out, dur) - t_in
         seg = float(clip["seg_end"]) - float(clip["seg_start"])
+        if eff < seg - 0.02:
+            print(f"[경고] {os.path.basename(clip['file'])}: 사용 구간 {eff:.2f}s가 "
+                  f"나레이션 구간 {seg:.2f}s보다 짧습니다 — 끝에 빈 화면이 생깁니다. "
+                  "out을 늘리거나 in을 당기세요.", file=sys.stderr)
+        ins.append(t_in)
+        outs.append(min(t_out, dur))
         slacks.append((eff, seg, max(eff - seg, 0.0)))
     xfades = []
     for i in range(n - 1):
@@ -305,7 +327,8 @@ def main():
             chain += [fit_vf(w, h), "format=yuv420p"]
 
         dst = os.path.join(tmp, f"norm_{idx:02d}.mp4")
-        cmd = ["ffmpeg", "-y", "-ss", str(args.trim), "-i", src]
+        cmd = ["ffmpeg", "-y", "-ss", str(ins[idx]), "-t", f"{outs[idx] - ins[idx]:.3f}",
+               "-i", src]
         src_has_audio = has_audio(src)
         if not src_has_audio:
             cmd += ["-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo", "-shortest"]
@@ -326,6 +349,7 @@ def main():
             "narration": manifest["chapters"][ci - 1]["narration"],
             "seg_start": float(clip["seg_start"]),
             "seg_end": float(clip["seg_end"]),
+            "in": round(ins[idx], 3), "out": round(outs[idx], 3),
             "zoom": zoom, "shake": shake,
             "transition": clip.get("transition", args.transition),
         })
