@@ -282,7 +282,9 @@ plan.md의 `## 리텐션 검토` 섹션에 남긴다.
 지시와 AVOID 규칙은 `.claude/skills/character-sheet/SKILL.md`를 따른다.
 
 `references/pipeline-rules.md`(이미지 프롬프트 구성·공인 규칙)를 **반드시
-읽고** 프롬프트를 작성한다. `references/image-prompt-guidelines.md`(Paper
+읽고** 프롬프트를 작성한다. mg-bodylab soft 3D 계열은
+`references/prompt-standard.md`(검증된 블록 구조·기준 원문)도 **반드시 읽고**
+그 원문을 요약하지 않고 사용한다. `references/image-prompt-guidelines.md`(Paper
 Diorama 시스템)는 그 계열 스타일일 때만 읽는다 — mg-bodylab 계열(soft 3D)
 에는 해당하지 않는다.
 
