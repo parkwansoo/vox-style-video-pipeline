@@ -46,8 +46,10 @@ description: Vox 스타일 애니메이션 저널리즘 영상을 완전 자동�
 
 ## 0. 사전 점검 (실패 시 즉시 사용자에게 안내하고 중단)
 
-- `.env`의 `GEMINI_API_KEY`(영상 Omni Flash용)가 채워져 있는가.
-  `KIE_API_KEY`는 **공인 클립(Seedance)이 있을 때만** 필요
+- 영상 기본 경로는 **Flow 구독**(2026-08-14 확정)이라 API 키 없이도
+  진행된다. `.env`의 `GEMINI_API_KEY`는 **API 폴백을 쓸 때만**,
+  `KIE_API_KEY`는 **공인 클립(Seedance)이 있을 때만** 확인한다 —
+  없다고 여기서 중단하지 않는다
 - 나레이션 TTS는 외장 SSD(Samsung_T5)의 clone-voice 백엔드를 자동 기동한다 —
   SSD 미연결이면 tts.py가 안내 메시지와 함께 실패하니 연결을 요청한다
 - `codex login status`가 ChatGPT 로그인 상태인가 (이미지 생성은 구독 OAuth 사용)

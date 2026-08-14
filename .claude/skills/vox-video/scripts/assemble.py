@@ -2,8 +2,9 @@
 """Assemble generated clips + narration + music into the final video.
 
 Pipeline:
-  1. Trim the first 0.25s off every clip, speed it up to match its narration
-     segment, normalize (size/fps/codec/audio).
+  1. Trim each clip (default: first 0.25s off; per-clip "in"/"out" override),
+     speed it up to match its narration segment, normalize
+     (size/fps/codec/audio).
   2. Concatenate all clips in order.
   3. Audio mix: clip audio kept at low volume (sfx), each narration segment
      placed exactly at its clip's start offset (per-clip sync), one random
@@ -270,7 +271,7 @@ def main():
         dur = ffprobe_duration(clip["file"])
         t_in = float(clip.get("in", args.trim))
         t_out = float(clip.get("out", dur))
-        if not 0 <= t_in < t_out <= dur + 0.05:
+        if not 0 <= t_in < t_out <= dur + 0.05 or t_in >= dur:
             sys.exit(f"{clip['file']}: in/out({t_in}/{t_out})이 파일 길이 {dur:.2f}s와 안 맞습니다")
         eff = min(t_out, dur) - t_in
         seg = float(clip["seg_end"]) - float(clip["seg_start"])

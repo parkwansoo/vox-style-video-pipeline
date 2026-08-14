@@ -264,7 +264,11 @@ def main():
     if args.speed is None:
         env_speed = os.environ.get("VOX_TTS_SPEED", "").strip()
         if env_speed:
-            args.speed = float(env_speed)
+            try:
+                args.speed = float(env_speed)
+            except ValueError:
+                sys.exit(f"VOX_TTS_SPEED가 숫자가 아닙니다: \"{env_speed}\" "
+                         "(예: 1.3)")
         else:
             style, speed = style_speed()
             if speed is not None:
@@ -272,6 +276,12 @@ def main():
                 print(f"[tts] 활성 스타일 {style}의 권장 배속 {speed} 적용 "
                       "(--speed 로 덮어쓰기 가능)", file=sys.stderr)
             else:
+                # 조용한 1.0 폴백이 원래 사고의 원인이었다 — 반드시 알린다
+                why = ("NOTES.md에서 '권장 배속 <숫자>'를 못 찾음"
+                       if style else "assets/ACTIVE_STYLE 또는 NOTES.md 읽기 실패")
+                print(f"[tts] 경고: 스타일 권장 배속 확인 불가({why}) — "
+                      "기본 1.0배속으로 진행합니다. 의도한 배속이 있으면 "
+                      "--speed 로 지정하세요.", file=sys.stderr)
                 args.speed = 1.0
 
     # ffmpeg atempo의 단일 필터 유효 범위

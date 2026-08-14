@@ -75,6 +75,8 @@
 - [ ] 2026-08-13 **[관찰 대기] SPEC 라벨 4행 제거** — 다음 제품 이미지 생성 때 빈자리에 모델이 글자를 지어내는지 확인. 지어내면 이 결정을 되돌리고 다른 방어를 찾는다 — assets/products/faceoil/SPEC.md
 - [ ] 2026-08-13 prompt-checklist.md가 실제로 재작업률을 낮추는지 다음 편에서 측정 — 이번 편 재작업률 24%(재생성 64/전체 271크레딧)가 기준선
 - [ ] 2026-08-13 **[관찰 대기] 스타일 NOTES의 비율(9:16)도 tts.py처럼 자동 적용 확장 검토** — 배속은 자동화했지만(tts.py style_speed) 비율은 여전히 사람이 NOTES를 읽어 스크립트 기본값(16:9)을 덮어써야 한다. 같은 함정 구조. 다음 편 클립 생성 때 비율 미적용이 한 번이라도 나오면 승격 — .claude/skills/vox-video/scripts/tts.py
+- [ ] 2026-08-14 **assemble.py xfade 혼합 잠재 버그** (Codex 감사) — manifest에 xfade>0이 하나라도 있으면 모든 경계가 xfade 체인으로 가고, xfade=0인 하드 컷도 1프레임 페이드가 되며 DTS 비단조 경고가 난다. 이번 편은 전부 xfade=0(concat 경로)이라 미발동. 페이드·하드컷 혼합 편을 만들기 전에 0인 경계를 체인에서 분리하도록 수정 — .claude/skills/vox-video/scripts/assemble.py:369
+- [ ] 2026-08-14 assemble.py 짧은 클립 경고 문구 2곳 불일치("빈 화면" vs "겹침") — 실제 동작 확인 후 통일 (Codex 감사 사소)
 - [ ] 2026-08-13 **[관찰 대기] zdf-grammar.md 관찰 대기 3건** — ①ZDF 비트(1.4~2.7s)가 우리 클립보다 짧아 인샷 장치로 내부를 쪼개는 대응의 효과 실측 ②object-wipe(전경 소품 와이프)를 AI 클립 이음매 숨기기로 실험 ③이징·타격감 재생 검수 판정을 사전에 언어화해 축적 — .claude/skills/vox-video/references/zdf-grammar.md
 
 ## 완료
