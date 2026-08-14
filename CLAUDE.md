@@ -17,6 +17,7 @@
 | 전환 문법 (ZDF 실측) | `.claude/skills/vox-video/references/zdf-grammar.md` |
 | 분할 후 화면 2차 심사 | `.claude/skills/vox-video/references/retention-review.md` |
 | 스타일 시트 만들기 | `.claude/skills/style-sheet/SKILL.md` |
+| 인물 얼굴이 나오는 컷 | `.claude/skills/character-sheet/SKILL.md` |
 | 제품이 나오는 컷 | `assets/products/<제품>/SPEC.md` |
 | 지난 결정과 그 이유 | `PROGRESS.md` |
 | 남은 일·관찰 대기 | `TODO.md` |
