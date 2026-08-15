@@ -30,17 +30,32 @@ STYLE_HEAD_MULTI = """The FIRST attached image is a master style sheet: use it f
 
 # --revise: 같은 컷을 다시 렌더할 때. 구도를 붙잡아 두고 재질·색만 고친다.
 # 새로 생성하면 구도가 매번 달라져 이미 통과한 화면 배치를 잃는다.
-REVISE_BLOCK = """The NEXT attached image is the previous render of this exact frame. Treat it as the composition reference: keep its camera angle, framing, subject placement, scale, silhouette and overall layout unchanged — this is a re-render of the same shot, not a new scene. Where the style sheet and this previous render disagree with the image prompt below, the image prompt wins: change exactly what it asks to change and leave everything else as it is."""
+REVISE_TMPL = """{who} the previous render of this exact frame. Treat it as the composition reference: keep its camera angle, framing, subject placement, scale, silhouette and overall layout unchanged — this is a re-render of the same shot, not a new scene. Where the style sheet and this previous render disagree with the image prompt below, the image prompt wins: change exactly what it asks to change and leave everything else as it is."""
 
-# 제품 등 정체성 레퍼런스. 제품은 항상 마지막에 붙이므로 REMAINING이 맞다.
+# 캐릭터 시트. 제품용(아래 REFS_BLOCK)을 그대로 쓰면 시트가 "실물 사물"이 되고
+# "재질을 그대로 유지하라"가 실사 렌더 보존 명령이 된다 — 2026-08-14 A·D·F1
+# 실사화의 원인.
+CHARACTER_TMPL = """{who} a character sheet for the person in this frame. Take ONLY their identity from it - face, hairstyle, body proportions and age. Do NOT take its rendering, lighting, grid layout, panel arrangement, backdrop, framing, or the expressions and poses of panels other than the one this prompt names. It is a reference sheet, not a photograph of a real object: render the person fresh in the style sheet's visual language."""
+
+# 체인 프레임(앞 클립의 마지막 프레임, 또는 쌍의 first). 시간 연속성을 승계한다.
+CHAIN_TMPL = """{who} the frame that comes immediately before this one in the film. Keep the world continuous with it - same location, same lighting, same materials and the same state of anything carried over. It is a starting point, not a composition to copy: this frame's camera, framing and subject placement are set by the image prompt below."""
+
+# 구도 앵커. 각도·크롭·거리만 가져오고 조명·상태·표정은 명시적으로 버린다.
+# 체인과 섞으면 안 된다 — 대구 컷(G→K)은 각도는 같고 조명·상태는 반대다.
+ANCHOR_TMPL = """{who} a composition anchor from an earlier frame in this film. Take ONLY its camera geometry - the angle, the crop, the distance to the subject and where the subject sits in the frame - so this frame reads as its counterpart. Do NOT take its lighting, colour, mood, or the state and expression of the subject; those are defined by the image prompt below and are deliberately different from the anchor."""
+
+# 제품 등 정체성 레퍼런스. 제품은 항상 마지막에 붙으므로 REMAINING이 어떤
+# 조합에서도 성립한다 (이 문구는 검증된 원문이라 손대지 않는다).
 REFS_BLOCK = """The REMAINING attached image(s) are identity references for a real object that must appear in this frame. Keep each one's recognizable shape, proportions, colour, material and label layout exactly as shown, but render it in the style sheet's visual language rather than copying its original lighting or background. Do not redesign it, do not restyle its label, and do not invent extra text on it."""
 
-# 캐릭터 시트. 위 제품용을 그대로 쓰면 시트가 "실물 사물"이 되고 "재질을 그대로
-# 유지하라"가 실사 렌더 보존 명령이 된다 — 2026-08-14 A·D·F1 실사화의 원인.
-CHARACTER_REFS_BLOCK = """The NEXT attached image(s) are a character sheet for the person in this frame. Take ONLY their identity from it - face, hairstyle, body proportions and age. Do NOT take its rendering, lighting, grid layout, panel arrangement, backdrop, framing, or the expressions and poses of panels other than the one this prompt names. It is a reference sheet, not a photograph of a real object: render the person fresh in the style sheet's visual language."""
 
-# 체인 프레임(앞 클립의 마지막 프레임). 세계는 이어받되 구도는 프롬프트가 정한다.
-CHAIN_REFS_BLOCK = """The NEXT attached image is the last frame of the previous clip in this sequence. Keep the world continuous with it - same location, same lighting, same materials and the same state of anything carried over. It is a starting point, not a composition to copy: this frame's camera, framing and subject placement are set by the image prompt below."""
+def _who(start, count):
+    """첨부 순번을 실제 위치로 박는다. 종류가 여럿일 때 'NEXT'를 반복하면
+    어느 이미지인지 무너진다 (2026-08-15 실측: 캐릭터+체인 동시 사용 시
+    NEXT가 두 번 나왔다)."""
+    if count == 1:
+        return f"Attachment {start} is"
+    return f"Attachments {start}-{start + count - 1} are"
 
 WRAPPER = """{header}
 
@@ -64,7 +79,9 @@ def main():
     p.add_argument("--ref-character", action="append", default=[], metavar="PATH",
                    help="캐릭터 시트 — 정체성만 가져오고 렌더·그리드·배경은 제외")
     p.add_argument("--ref-chain", action="append", default=[], metavar="PATH",
-                   help="앞 클립의 마지막 프레임 — 세계 연속성만 가져온다")
+                   help="직전 프레임(체인·쌍의 first) — 시간 연속성을 가져온다")
+    p.add_argument("--ref-anchor", action="append", default=[], metavar="PATH",
+                   help="구도 앵커 — 각도·크롭·거리만. 조명·상태·표정은 제외")
     p.add_argument("--revise", metavar="PATH",
                    help="이전 렌더본. 구도를 유지한 채 프롬프트가 지시한 부분만 고쳐 다시 그린다")
     p.add_argument("--out", required=True)
@@ -99,7 +116,8 @@ def main():
         return out
 
     char_refs = _resolve(args.ref_character, "캐릭터 시트 참조")
-    chain_refs = _resolve(args.ref_chain, "체인 프레임 참조")
+    chain_refs = _resolve(args.ref_chain, "직전 프레임 참조")
+    anchor_refs = _resolve(args.ref_anchor, "구도 앵커 참조")
     extra_refs = _resolve(args.ref, "추가 참조")
     out_path = Path(args.out).resolve()
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -110,16 +128,18 @@ def main():
     tmp_path = out_path.parent / f"{out_path.stem}__gen{uuid.uuid4().hex[:8]}.png"
 
     codex = os.environ.get("CODEX_BIN", "codex")
-    if revise_ref or char_refs or chain_refs or extra_refs:
-        # 블록 순서 = 첨부 순서. 제품은 항상 마지막이라 REFS_BLOCK의
-        # "REMAINING"이 어떤 조합에서도 맞는다.
+    if revise_ref or char_refs or chain_refs or anchor_refs or extra_refs:
+        # 블록 순서 = 첨부 순서이고, 각 블록에 실제 첨부 순번을 박는다.
+        # 제품은 항상 마지막이라 REFS_BLOCK의 "REMAINING"이 어떤 조합에서도 맞는다.
         blocks = [STYLE_HEAD_MULTI]
-        if revise_ref:
-            blocks.append(REVISE_BLOCK)
-        if char_refs:
-            blocks.append(CHARACTER_REFS_BLOCK)
-        if chain_refs:
-            blocks.append(CHAIN_REFS_BLOCK)
+        pos = 2  # 1번은 스타일 시트
+        for group, tmpl in ((([revise_ref] if revise_ref else []), REVISE_TMPL),
+                            (char_refs, CHARACTER_TMPL),
+                            (chain_refs, CHAIN_TMPL),
+                            (anchor_refs, ANCHOR_TMPL)):
+            if group:
+                blocks.append(tmpl.format(who=_who(pos, len(group))))
+                pos += len(group)
         if extra_refs:
             blocks.append(REFS_BLOCK)
         attach = "\n\n".join(blocks)
@@ -139,11 +159,11 @@ def main():
     if args.model:
         cmd += ["-m", args.model]
     cmd += ["-i", str(style_ref)]
-    # 첨부 순서가 곧 프롬프트의 FIRST/NEXT/REMAINING이다 —
-    # 시트, 이전 렌더본, 캐릭터 시트, 체인 프레임, 제품(항상 마지막)
+    # 첨부 순서가 곧 블록의 순번이다 — 시트(1), 이전 렌더본, 캐릭터 시트,
+    # 직전 프레임, 구도 앵커, 제품(항상 마지막). 위 블록 조립과 같은 순서.
     if revise_ref:
         cmd += ["-i", str(revise_ref)]
-    for ref in char_refs + chain_refs + extra_refs:
+    for ref in char_refs + chain_refs + anchor_refs + extra_refs:
         cmd += ["-i", str(ref)]
     # "--" 없이는 변수 개수 옵션인 -i가 프롬프트 인자까지 삼킨다
     cmd += ["--", wrapped]

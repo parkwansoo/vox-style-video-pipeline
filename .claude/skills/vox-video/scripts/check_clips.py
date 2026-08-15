@@ -110,9 +110,19 @@ def main():
         rows.append((f.stem, w, h, dur, mean, maxv, suspect))
 
     print(f"{'클립':10s} {'해상도':>9s} {'길이':>7s} {'mean':>7s} {'max':>7s}")
+    silent = []
     for name, w, h, dur, mean, maxv, suspect in rows:
         flag = "  ← 말소리 생성 의심" if suspect else ""
-        print(f"{name:10s} {w}x{h:>4d} {dur:6.2f}s {mean:6.1f} {maxv:6.1f}{flag}")
+        # 오디오 스트림이 없으면 mean/max가 None이다. 그대로 포맷하면 TypeError로
+        # 죽어 나머지 클립 결과까지 잃는다 — 값 없음으로 찍고 목록에 남긴다.
+        if mean is None or maxv is None:
+            silent.append(name)
+            lvl = f"{'—':>7s}{'—':>8s}"
+        else:
+            lvl = f"{mean:6.1f} {maxv:6.1f}"
+        print(f"{name:10s} {w}x{h:>4d} {dur:6.2f}s {lvl}{flag}")
+    if silent:
+        print(f"\n[알림] 오디오 스트림이 없는 클립: {', '.join(silent)}")
     print(f"\n프레임: {frame_dir}/ (첫·끝, 원본 해상도 — 라벨·실루엣은 여기서 눈으로)")
     if warnings:
         print(f"\n[경고] 오디오 레벨이 {args.voice_threshold}dB보다 큰 클립: "
