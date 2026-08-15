@@ -75,6 +75,15 @@
 - [ ] 2026-08-13 **[관찰 대기] 스타일 NOTES의 비율(9:16)도 tts.py처럼 자동 적용 확장 검토** — 배속은 자동화했지만(tts.py style_speed) 비율은 여전히 사람이 NOTES를 읽어 스크립트 기본값(16:9)을 덮어써야 한다. 같은 함정 구조. 다음 편 클립 생성 때 비율 미적용이 한 번이라도 나오면 승격 — .claude/skills/vox-video/scripts/tts.py
 - [ ] 2026-08-14 **assemble.py xfade 혼합 잠재 버그** (Codex 감사) — manifest에 xfade>0이 하나라도 있으면 모든 경계가 xfade 체인으로 가고, xfade=0인 하드 컷도 1프레임 페이드가 되며 DTS 비단조 경고가 난다. 이번 편은 전부 xfade=0(concat 경로)이라 미발동. 페이드·하드컷 혼합 편을 만들기 전에 0인 경계를 체인에서 분리하도록 수정 — .claude/skills/vox-video/scripts/assemble.py:369
 - [ ] 2026-08-14 assemble.py 짧은 클립 경고 문구 2곳 불일치("빈 화면" vs "겹침") — 실제 동작 확인 후 통일 (Codex 감사 사소)
+- [ ] 2026-08-15 **[감사 P1] Flow 기본 경로 계약·비용 갱신** — API 예시/비용 절/README/.env를 Flow 기본으로 통일하고, 공식 Omni Flash 비용 4초 15·6초 20크레딧 및 사용자 승인 시점을 반영 — `.claude/skills/vox-video/SKILL.md:388,405,604`, `README.md:44`, `.env.example:11`
+- [ ] 2026-08-15 **[감사 P1] 라벨 5행 복원 잔여 제거** — `prompt-checklist`와 기미 오일 진행상태의 “4행 제거/빈자리 확인”을 5행 유지·회전 금지·트림·크롭 검수로 교체 — `.claude/skills/vox-video/references/prompt-checklist.md:30`, `output/20260813-melasma-oil/ch1/scenes/진행상태.md:27,75`
+- [ ] 2026-08-15 **[감사 P1] 캐릭터 시트 게이트 상태 단일화** — PLAN/진행상태의 대기·완료·조건부 통과 충돌을 정리하고, 승인 자산과 상태를 묶어 `pending`에서는 다운스트림 생산 차단 — `.claude/skills/character-sheet/SKILL.md:163`, `output/20260813-melasma-oil/ch1/character/PLAN.md:3,89`, `output/20260813-melasma-oil/ch1/scenes/진행상태.md:10,35,71`
+- [ ] 2026-08-15 **[감사 P1] 검수 엑셀 생성 재현성 확보** — ignored 런 전용 생성기를 추적되는 스킬 스크립트로 승격하고 프로젝트 의존성에 `openpyxl` 추가, 3시트·병합·동기화 테스트 작성 — `.claude/skills/vox-video/references/scene-design.md:128`, `requirements.txt`
+- [ ] 2026-08-15 **[감사 P1] 이미지 ref 역할 계약 분리** — 캐릭터 시트·체인 프레임·제품 ref를 모두 real object/label로 포장하지 않도록 역할별 옵션 또는 중립 래퍼 도입 — `.claude/skills/vox-video/scripts/gen_image.py:35`, `.claude/skills/character-sheet/SKILL.md:174`
+- [ ] 2026-08-15 **[감사 P1] 프롬프트 정본·비율·AVOID 상충 제거** — 씬 파일 우선/나레이션 교차검증, 스타일별 9:16·16:9 조건, 제품 라벨·남성 인물에 대한 조건부 AVOID로 단일화 — `.claude/skills/vox-video/SKILL.md:270,348,351`, `.claude/skills/vox-video/references/prompt-standard.md:197`
+- [ ] 2026-08-15 **[감사 P1] 회수 검사 fail-open 차단** — `check_clips.py --clips all`이 0개·누락·중복 클립에 실패하고 jobs manifest의 예상 ID/수량과 대조하도록 수정 — `.claude/skills/vox-video/scripts/check_clips.py:83`
+- [ ] 2026-08-15 **[감사 P2] 재사용 문서에서 런 전용 값·미결 상태 제거** — `13씬`, `40대 초반/씬5`, hex 결정 대기, Paper Diorama 정본 충돌, 중복 게이트 번호와 character-sheet 단계 역전을 일반 계약으로 정리 — `.claude/skills/vox-video/references/scene-design.md:29`, `prompt-standard.md:149,349`, `pipeline-rules.md:3`, `.claude/skills/character-sheet/SKILL.md:61`
+- [ ] 2026-08-15 **[감사 P2] 회귀 테스트·분석 근거 고정** — TTS 배속/assemble in-out/혼합 xfade/다중 ref/0클립 검사를 자동화하고 프롬프트 전수 분석 대상 파일 목록·SHA를 추적 — `.claude/skills/vox-video/scripts/`, `.claude/skills/vox-video/references/prompt-standard.md:9`
 - [ ] 2026-08-13 **[관찰 대기] zdf-grammar.md 관찰 대기 3건** — ①ZDF 비트(1.4~2.7s)가 우리 클립보다 짧아 인샷 장치로 내부를 쪼개는 대응의 효과 실측 ②object-wipe(전경 소품 와이프)를 AI 클립 이음매 숨기기로 실험 ③이징·타격감 재생 검수 판정을 사전에 언어화해 축적 — .claude/skills/vox-video/references/zdf-grammar.md
 
 ## 완료
