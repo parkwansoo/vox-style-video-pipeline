@@ -83,6 +83,14 @@ def main():
     if args.clips == ["all"]:
         files = sorted(ch_dir.glob("clip*.mp4"))
         files = [f for f in files if re.fullmatch(r"clip\d+[a-z]?", f.stem)]
+        if not files:
+            # 0개를 통과로 끝내면 회수 실패·파일명 오류가 전체 합격으로 보인다
+            found = sorted(p.name for p in ch_dir.glob("*.mp4"))
+            sys.exit(
+                f"검사 대상 클립이 0개다: {ch_dir}\n"
+                f"  clip<번호>[a-z].mp4 형식만 검사한다. 폴더의 mp4: "
+                + (", ".join(found) if found else "없음")
+            )
     else:
         files = [ch_dir / f"clip{c}.mp4" for c in args.clips]
         missing = [f for f in files if not f.is_file()]

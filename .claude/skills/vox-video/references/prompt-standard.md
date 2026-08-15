@@ -191,10 +191,30 @@ photographic realism
 photographic realism or photo-real skin texture
 ```
 
+**글자 금지는 조건부다 (2026-08-15 정정).** 무조건형을 쓰면 화면에 있어야
+할 라벨·숫자까지 금지된다. 지난 편은 컷 유형에 따라 아래 셋 중 하나를 썼고,
+전부 원문이다. 이 자리에는 반드시 하나를 골라 넣는다.
+
+```text
+any text, letters, numbers, captions, logos or watermarks
+any text anywhere except the five label lines on the bottle
+any text, number, percentage, price, arrow, button or badge anywhere except the five label lines on the bottle
+```
+
+첫째는 글자가 전혀 없어야 하는 컷(31개 파일), 둘째·셋째는 제품 라벨이 보이는
+컷(8+2개 파일)이다. 화면에 큰 숫자·배지가 들어가는 컷은 그 대상만 예외로
+남기고 나머지를 금지한 원문이 따로 있다(`clip16`: `any text, word, letter,
+currency symbol or extra digit beside the number - the giant number reads
+exactly 41% and nothing more`). 우리 편의 «3만원대»·«14일 전액환불» 컷은
+이 형태를 따른다.
+
+`the man shown in the style sheet or any male face`도 컷에 남성이 등장하면
+빼거나 좁힌다. 우리 편 씬 1a의 의사는 얼굴이 프레임 밖이라 그대로 둔다.
+
 전체 조립 형식은 다음과 같다.
 
 ```text
-AVOID: [슬롯: 이 컷의 반대 상태·반대 방향]; [슬롯: 유형별 추가 원문]; any text, letters, numbers, captions, logos or watermarks; the man shown in the style sheet or any male face; a room corner, floor, wall, furniture or any interior; horizon lines, harsh shadows, lens flares, photographic film grain; [슬롯: photographic realism / photographic realism or photo-real skin texture]; [슬롯: 피사체에 sky-blue tint 금지]; flat 2D graphics, collage, paper texture or halftone; split screens or multi-panel layouts.
+AVOID: [슬롯: 이 컷의 반대 상태·반대 방향]; [슬롯: 유형별 추가 원문]; [슬롯: 위 글자 금지 3형 중 하나]; [슬롯: the man shown in the style sheet or any male face — 남성 등장 컷이면 제외]; a room corner, floor, wall, furniture or any interior; horizon lines, harsh shadows, lens flares, photographic film grain; [슬롯: photographic realism / photographic realism or photo-real skin texture]; [슬롯: 피사체에 sky-blue tint 금지]; flat 2D graphics, collage, paper texture or halftone; split screens or multi-panel layouts.
 ```
 
 ## 4. 컷 유형별 레시피

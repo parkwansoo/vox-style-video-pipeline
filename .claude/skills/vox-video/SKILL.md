@@ -348,9 +348,6 @@ cp .../clip3.png .../clip3_원본.png   # 참조본은 따로 남긴다 (출력�
 이미지 프롬프트의 첫 문장도 `Create ONE 9:16 scene frame...`으로 바꿔 쓴다
 (pipeline-rules.md 템플릿의 16:9 부분).
 
-- 이미지 프롬프트는 해당 클립의 나레이션 구간 텍스트를 근거로 작성하며,
-  "Create ONE 16:9 scene frame, not a style board" 지시로 시작한다
-  (pipeline-rules.md의 템플릿).
 - **공인 클립**: 눈 검은 바 + 원거리 구도 필수 (pipeline-rules.md 참조).
 - 병렬 실행은 **동시 2개까지만** (이미지 생성은 ChatGPT 구독 사용량을
   소모하므로 과도한 동시 실행을 피한다). 사용량 한도 초과로 실패하면
