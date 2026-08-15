@@ -53,6 +53,14 @@ CHARACTER_TMPL = """{who} a character sheet for the person in this frame. Take O
 # 실측, pipeline-rules 7절). 그래서 조명·상태를 **명시적 제외 목록**에 넣었다.
 CHAIN_TMPL = """{who} the frame that comes immediately before this one in the film. Keep the world continuous with it - same location, same materials. It is a starting point, not a composition to copy: this frame's camera, framing, subject placement, lighting and the state of everything in it are set by the image prompt below."""
 
+# 세계 앵커(2026-08-15 신설). 앞선 컷과 "같은 세계·같은 물체"임을 유지하되
+# 구도·조명·상태는 버린다. 체인(직전 프레임)도 앵커(구도)도 아닌 제3의 관계다.
+# 우리 편 E→J가 그렇다: 씬 3+4의 단면 와이드와 씬 11의 심층 클로즈는 같은
+# 세계·같은 멜라닌 덩어리지만, 구도는 와이드↔클로즈로 다르고 조명·색은
+# 어둠↔앰버로 반대다. anchor를 쓰면 가져올 것(재질·형태)과 버릴 것(구도)이
+# 정확히 뒤바뀐다.
+WORLD_TMPL = """{who} an earlier frame of the same world in this film. Take ONLY what that world is made of - its materials, its structures, and the shape of the objects that appear in both frames - so this frame reads as the same place seen again. Do NOT take its camera angle, crop or distance, and do NOT take its lighting, colour, or the state of anything in it; this frame's framing, light and state are set by the image prompt below and are deliberately different."""
+
 # 구도 앵커. 각도·크롭·거리만 가져오고 조명·상태·표정은 명시적으로 버린다.
 # 체인과 섞으면 안 된다 — 대구 컷(G→K)은 각도는 같고 조명·상태는 반대다.
 ANCHOR_TMPL = """{who} a composition anchor from an earlier frame in this film. Take ONLY its camera geometry - the angle, the crop, the distance to the subject and where the subject sits in the frame - so this frame reads as its counterpart. Do NOT take its lighting, colour, mood, or the state and expression of the subject; those are defined by the image prompt below and are deliberately different from the anchor."""
@@ -91,8 +99,10 @@ def main():
     # 시트에 쓰면 시트의 실사 렌더가 그대로 승계된다 (2026-08-14 실측).
     p.add_argument("--ref-character", action="append", default=[], metavar="PATH",
                    help="캐릭터 시트 — 정체성만 가져오고 렌더·그리드·배경은 제외")
+    p.add_argument("--ref-world", action="append", default=[], metavar="PATH",
+                   help="세계 앵커 — 재질·구조·물체 형태만. 구도·조명·색·상태는 제외")
     p.add_argument("--ref-chain", action="append", default=[], metavar="PATH",
-                   help="직전 프레임(체인·쌍의 first) — 시간 연속성을 가져온다")
+                   help="직전 프레임(체인·쌍의 first) — 같은 장소·재질. 조명·상태는 제외")
     p.add_argument("--ref-anchor", action="append", default=[], metavar="PATH",
                    help="구도 앵커 — 각도·크롭·거리만. 조명·상태·표정은 제외")
     p.add_argument("--revise", metavar="PATH",
@@ -129,6 +139,7 @@ def main():
         return out
 
     char_refs = _resolve(args.ref_character, "캐릭터 시트 참조")
+    world_refs = _resolve(args.ref_world, "세계 앵커 참조")
     chain_refs = _resolve(args.ref_chain, "직전 프레임 참조")
     anchor_refs = _resolve(args.ref_anchor, "구도 앵커 참조")
     extra_refs = _resolve(args.ref, "추가 참조")
@@ -141,13 +152,14 @@ def main():
     tmp_path = out_path.parent / f"{out_path.stem}__gen{uuid.uuid4().hex[:8]}.png"
 
     codex = os.environ.get("CODEX_BIN", "codex")
-    if revise_ref or char_refs or chain_refs or anchor_refs or extra_refs:
+    if revise_ref or char_refs or world_refs or chain_refs or anchor_refs or extra_refs:
         # 블록 순서 = 첨부 순서이고, 각 블록에 실제 첨부 순번을 박는다.
         # 제품은 항상 마지막이라 REFS_BLOCK의 "REMAINING"이 어떤 조합에서도 맞는다.
         blocks = [STYLE_HEAD_MULTI]
         pos = 2  # 1번은 스타일 시트
         for group, tmpl in ((([revise_ref] if revise_ref else []), REVISE_TMPL),
                             (char_refs, CHARACTER_TMPL),
+                            (world_refs, WORLD_TMPL),
                             (chain_refs, CHAIN_TMPL),
                             (anchor_refs, ANCHOR_TMPL)):
             if group:
@@ -176,7 +188,7 @@ def main():
     # 직전 프레임, 구도 앵커, 제품(항상 마지막). 위 블록 조립과 같은 순서.
     if revise_ref:
         cmd += ["-i", str(revise_ref)]
-    for ref in char_refs + chain_refs + anchor_refs + extra_refs:
+    for ref in char_refs + world_refs + chain_refs + anchor_refs + extra_refs:
         cmd += ["-i", str(ref)]
     # "--" 없이는 변수 개수 옵션인 -i가 프롬프트 인자까지 삼킨다
     cmd += ["--", wrapped]

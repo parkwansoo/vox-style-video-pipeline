@@ -228,13 +228,15 @@ AVOID: [슬롯: 이 컷의 반대 상태·반대 방향]; [슬롯: 유형별 추
 
 `gen_image.py`가 첨부 설명에 **실제 순번을 박아준다**(`Attachment 2 is...`).
 프롬프트 본문의 순번도 그 실제 위치로 바꿔 쓴다. 첨부 순서는 스크립트가
-고정한다: **시트(1) → 이전 렌더본 → 캐릭터 시트 → 직전 프레임 → 구도 앵커
-→ 제품(항상 마지막)**.
+고정한다: **시트(1) → 이전 렌더본 → 캐릭터 시트 → 세계 앵커 → 직전 프레임
+→ 구도 앵커 → 제품(항상 마지막)**. 정체성 계열(캐릭터·세계) → 연속성(체인)
+→ 구도(앵커) → 제품 순이다.
 
 | 옵션 | 무엇을 승계하나 | 쓰는 곳 |
 |---|---|---|
 | `--style-ref` | 재질·시각 언어 (배경·팔레트·조명) | 항상 |
 | `--ref-character` | 정체성만 (얼굴·머리·체형·나이) | 인물 컷 |
+| `--ref-world` | **세계만** (재질·구조·물체 형태) — 구도·조명·색·상태는 명시적 제외 | 같은 세계의 떨어진 컷 (E→J) |
 | `--ref-chain` | 같은 장소·재질 (**조명·상태는 승계하지 않는다** — 컷 프롬프트가 정한다) | 체인 end, 쌍의 end |
 | `--ref-anchor` | **구도만** (각도·크롭·거리) — 조명·상태·표정은 명시적 제외 | 대구 컷 |
 | `--ref` | 실물 정체성 (형태·비율·색·재질·라벨) | 제품 |
@@ -280,11 +282,15 @@ chain의 `same lighting`이 대구 컷 G→K의 "조명·상태는 반대"와 �
 - 지난 편 WOMAN 기준 원문:
 
 ```text
-WOMAN: The SECOND attached image is the identity reference. The reflected face in this frame must be that very woman - the same Korean woman in her early fifties, the same facial structure, the same eyes, nose and mouth, the same shoulder-length dark-brown wavy hair, the same plain warm-cream crew-neck knit top, the same age. Take ONLY her facial identity, hair and age from the reference - NEVER its framing, camera distance, pose, EXPRESSION, gaze direction or head angle; this frame's expression is defined below and is different from the reference's. Match the reference's colour world: the same skin warmth, hair colour and flat sky-blue background - do not deepen or saturate the palette.
+WOMAN: [슬롯: 캐릭터 첨부 지칭] is the identity reference. The reflected face in this frame must be that very woman - the same Korean woman in her early fifties, the same facial structure, the same eyes, nose and mouth, the same shoulder-length dark-brown wavy hair, the same plain warm-cream crew-neck knit top, the same age. Take ONLY her facial identity, hair and age from the reference - NEVER its framing, camera distance, pose, EXPRESSION, gaze direction or head angle; this frame's expression is defined below and is different from the reference's. Match the reference's colour world: the same skin warmth, hair colour and flat sky-blue background - do not deepen or saturate the palette.
 ```
 
-  `[슬롯: reflected face / this frame]`, `[슬롯: 인물의 확정 정체성·헤어·착의·
-  나이]`, `[슬롯: 해당 표정]`만 바꾼다. 캐릭터 시트가 있으면 얼굴·머리·나이는
+  `[슬롯: 캐릭터 첨부 지칭]`, `[슬롯: reflected face / this frame]`,
+  `[슬롯: 인물의 확정 정체성·헤어·착의·나이]`, `[슬롯: 해당 표정]`만 바꾼다.
+  **첨부 지칭**: 래퍼가 `Attachment N is a character sheet…`로 이미 선언하므로
+  본문은 `That character reference`로 받는다. 지난 편 원문은
+  `The SECOND attached image`였고, 당시엔 첨부 조합이 고정(시트+인물 ref+first)
+  이라 맞았다 — 우리는 컷마다 조합이 달라 순번을 박으면 어긋난다. 캐릭터 시트가 있으면 얼굴·머리·나이는
   캐릭터 시트에서 가져오고, RENDER MODE의 아래 두 원문 문장은 스타일 시트의
   피부 렌더 재질만 가져오는 역할로 그대로 둔다.
 
@@ -373,11 +379,14 @@ SCENE MATCH: This is the END frame of a shot that begins [슬롯: first 상태].
   첨부인지 명시한다. 지난 편 기준 원문:
 
 ```text
-CONTINUITY: The THIRD attached image is the first frame of this exact shot. The lamp here is the SAME physical object shown there - same round dark metal head, same thin pole, same base, same position and same size in frame - and she stands at the same distance from the camera in the same knit. Reproduce that lamp exactly; only her skin and her expression differ from the first frame.
+CONTINUITY: [슬롯: 체인 첨부 지칭] is the first frame of this exact shot. The lamp here is the SAME physical object shown there - same round dark metal head, same thin pole, same base, same position and same size in frame - and she stands at the same distance from the camera in the same knit. Reproduce that lamp exactly; only her skin and her expression differ from the first frame.
 ```
 
-  `[슬롯: 첨부 순번]`, `[슬롯: 동일 물체의 실측 특징]`, `[슬롯: 허용 변화]`만
-  바꾼다. 쌍의 실루엣·거리·광원은 생성 후 나란히 비교한다.
+  `[슬롯: 체인 첨부 지칭]`, `[슬롯: 동일 물체의 실측 특징]`, `[슬롯: 허용 변화]`만
+  바꾼다. **첨부 지칭**: 래퍼가 `Attachment N is the frame that comes
+  immediately before…`로 선언하므로 본문은 `That previous frame`으로 받는다.
+  지난 편 원문은 `The THIRD attached image`.
+  쌍의 실루엣·거리·광원은 생성 후 나란히 비교한다.
 
 ## 5. AVOID 라이브러리
 

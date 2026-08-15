@@ -46,12 +46,20 @@ CASES = [
      ["--ref-chain", "chain", "--ref", "prod"], ["style", "chain", "prod"],
      [("style", None), ("the frame that comes immediately before", 2),
       ("REMAINING attached image(s) are identity references", None)]),
-    ("전부",
-     ["--ref-character", "cs", "--ref-chain", "chain", "--ref-anchor", "anchor",
-      "--ref", "prod"], ["style", "cs", "chain", "anchor", "prod"],
+    ("세계 앵커만 (이미지 J 조합)",
+     ["--ref-world", "world"], ["style", "world"],
+     [("style", None), ("an earlier frame of the same world", 2)]),
+    # 주의: 이 조합은 chain+anchor를 함께 넘긴다 — prompt-standard가 금지한
+    # 조합이다(구도에서 싸운다). 여기서는 순번 계산만 검증하려고 쓴다.
+    # CLI에서 혼용을 거부하게 되면 이 케이스는 "실패를 기대"로 바꾼다 (TODO).
+    ("전부 (순번 계산 검증용 — 실사용 금지 조합 포함)",
+     ["--ref-character", "cs", "--ref-world", "world", "--ref-chain", "chain",
+      "--ref-anchor", "anchor", "--ref", "prod"],
+     ["style", "cs", "world", "chain", "anchor", "prod"],
      [("style", None), ("a character sheet for the person", 2),
-      ("the frame that comes immediately before", 3),
-      ("a composition anchor", 4),
+      ("an earlier frame of the same world", 3),
+      ("the frame that comes immediately before", 4),
+      ("a composition anchor", 5),
       ("REMAINING attached image(s) are identity references", None)]),
 ]
 
@@ -62,7 +70,7 @@ PRODUCT_ONLY = "identity references for a real object"
 def main() -> int:
     tmp = Path(tempfile.mkdtemp(prefix="selftest_refs_"))
     imgs = {}
-    for name in ("style", "prod", "cs", "chain", "anchor"):
+    for name in ("style", "prod", "cs", "world", "chain", "anchor"):
         p = tmp / f"{name}.png"
         p.write_bytes(b"\x89PNG\r\n\x1a\n")  # 존재만 확인하므로 헤더면 충분
         imgs[name] = p
