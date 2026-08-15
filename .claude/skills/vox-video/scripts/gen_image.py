@@ -37,8 +37,21 @@ REVISE_TMPL = """{who} the previous render of this exact frame. Treat it as the 
 # 실사화의 원인.
 CHARACTER_TMPL = """{who} a character sheet for the person in this frame. Take ONLY their identity from it - face, hairstyle, body proportions and age. Do NOT take its rendering, lighting, grid layout, panel arrangement, backdrop, framing, or the expressions and poses of panels other than the one this prompt names. It is a reference sheet, not a photograph of a real object: render the person fresh in the style sheet's visual language."""
 
-# 체인 프레임(앞 클립의 마지막 프레임, 또는 쌍의 first). 시간 연속성을 승계한다.
-CHAIN_TMPL = """{who} the frame that comes immediately before this one in the film. Keep the world continuous with it - same location, same lighting, same materials and the same state of anything carried over. It is a starting point, not a composition to copy: this frame's camera, framing and subject placement are set by the image prompt below."""
+# 체인 프레임(앞 클립의 마지막 프레임, 또는 쌍의 first). 세계를 승계한다.
+#
+# 2026-08-15: `same lighting`과 `the same state of anything carried over`를
+# 뺐다. 이 래퍼는 **모든 체인 컷에 자동으로 붙는데** 조명·상태는 컷마다
+# 다르다 — 6쌍 전수 대조에서 location 6/6·materials 6/6이 같은 반면,
+# lighting은 2쌍(I→N, L→M)이 다르고 state는 **1쌍(L→M)만** 같았다.
+# 체인은 "시간이 흐른 다음 프레임"이라 상태가 진행하는 것이 정상이고,
+# `same state`는 체인의 본질과 모순이었다. 씬 13 M의 "L보다 조명을 더
+# 강하게"와는 정면으로 싸웠다.
+# 지난 편은 조명 승계를 컷마다 손으로 판단했다(clip17·clip9b의 SCENE MATCH).
+# 래퍼는 그럴 수 없으므로 **항상 참인 것만** 말하고, 컷마다 다른 것은
+# 본문 SCENE MATCH/CONTINUITY 블록이 말한다.
+# 지우기만 하면 부족하다 — ref는 침묵한 속성을 끌고 온다(2026-08-12 표정
+# 실측, pipeline-rules 7절). 그래서 조명·상태를 **명시적 제외 목록**에 넣었다.
+CHAIN_TMPL = """{who} the frame that comes immediately before this one in the film. Keep the world continuous with it - same location, same materials. It is a starting point, not a composition to copy: this frame's camera, framing, subject placement, lighting and the state of everything in it are set by the image prompt below."""
 
 # 구도 앵커. 각도·크롭·거리만 가져오고 조명·상태·표정은 명시적으로 버린다.
 # 체인과 섞으면 안 된다 — 대구 컷(G→K)은 각도는 같고 조명·상태는 반대다.
