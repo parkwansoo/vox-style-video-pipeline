@@ -535,6 +535,11 @@ CONTINUITY: [슬롯: 체인 첨부 지칭] is the first frame of this exact shot
    메운다 (D v1: 크롭이 정강이까지 내려가자 시트 전신 패널의 크림 바지가
    따라왔다). 화면에 나오면 안 되는 것은 크롭이나 AVOID로 막는다
 5. **AVOID에 이 컷의 반대 상태가 있나** (3절 조립 형식의 첫 슬롯)
+6. **화면이 피사체로 꽉 차 있나.** 시클로라마가 한쪽에 열려 있어야 시청자가
+   무엇을 보는 그림인지 안다 — 꽉 찬 화면은 추상 패턴으로 읽힌다
+   (기미 편 J: 파랑을 `a soft sliver ... at one edge`로 몰았더니 구슬이
+   화면을 덮어 무엇인지 알 수 없었다. 통과본 E는
+   `A band of soft sky-blue runs across the upper frame`이었다)
 
 ## 영상 프롬프트 구조
 
