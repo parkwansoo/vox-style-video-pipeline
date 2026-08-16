@@ -146,8 +146,25 @@ Age is carried by form and soft shading - a deepened fold from nose to mouth, fa
 Her age is fully present and must be visible - a deepened fold from nose to mouth, cheeks that have begun to fall, a softened jawline, loose skin at the neck and light creases at the brow - but carried by form and soft shading, never by photographic wrinkle and pore detail.
 ```
 
-우리 편 주인공은 40대 초반이고 씬 5가 건조·잔주름을 화면의 주제로 쓰므로,
-인물 컷에서는 확장형을 기본으로 한다.
+**확장형을 기본으로 쓰지 않는다 — 조건이 붙는다 (2026-08-16 실측 개정).**
+확장형의 디테일 목록은 **렌더를 사진 쪽으로 끌어당긴다.** 바로 뒤에
+`never by photographic wrinkle and pore detail`가 붙어 있어도 목록이 이긴다.
+
+기미 편 앵커 실측(다른 조건 전부 동일, 연령 서술만 교체):
+
+| | 연령 서술 | 나이 | 렌더 톤 |
+|---|---|---|---|
+| 후보6 | 확장형(목록 포함) | 50대 ✅ | **사진 질감·주름·모공** |
+| 후보7 | 핵심형(숫자만) | 50대 ✅ | **매끈한 CG, 단순화된 면** |
+
+**나이는 숫자 지정만으로 지켜진다.** 목록은 나이를 위해 필요한 것이 아니라
+렌더 톤을 바꾸는 스위치다. 그러므로:
+
+- **정체성 앵커·캐릭터 시트** → 핵심형. 톤이 편 전체로 복제되므로
+- **건조·주름이 화면의 주제인 컷**(우리 편 씬 5 같은) → 확장형을 고려하되,
+  그 컷만 사진 쪽으로 기우는 것을 감수할지 판단한다
+- **캐릭터 시트를 만들 때는 사용자에게 방향을 묻는다** (character-sheet
+  스킬 5단계 게이트. 사용자가 한쪽으로 확정할 때까지 매번 묻는다)
 
 단면·구슬 컷의 기준 원문:
 

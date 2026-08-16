@@ -33,14 +33,14 @@ CASES = [
     ("제품만 (기존 사용법)", ["--ref", "prod"], ["style", "prod"],
      [("style", None), ("REMAINING attached image(s) are identity references", None)]),
     ("캐릭터만", ["--ref-character", "cs"], ["style", "cs"],
-     [("style", None), ("a character sheet for the person", 2)]),
+     [("style", None), ("a character sheet - or an approved anchor frame",2)]),
     ("캐릭터+체인 (이미지 G 조합)",
      ["--ref-character", "cs", "--ref-chain", "chain"], ["style", "cs", "chain"],
-     [("style", None), ("a character sheet for the person", 2),
+     [("style", None), ("a character sheet - or an approved anchor frame",2),
       ("the frame that comes immediately before", 3)]),
     ("캐릭터+앵커 (이미지 K 조합)",
      ["--ref-character", "cs", "--ref-anchor", "anchor"], ["style", "cs", "anchor"],
-     [("style", None), ("a character sheet for the person", 2),
+     [("style", None), ("a character sheet - or an approved anchor frame",2),
       ("a composition anchor", 3)]),
     ("체인+제품 (이미지 N·M 조합)",
      ["--ref-chain", "chain", "--ref", "prod"], ["style", "chain", "prod"],
@@ -49,17 +49,29 @@ CASES = [
     ("세계 앵커만 (이미지 J 조합)",
      ["--ref-world", "world"], ["style", "world"],
      [("style", None), ("an earlier frame of the same world", 2)]),
+    ("렌더 스타일만 (앵커 조합)",
+     ["--ref-render", "render"], ["style", "render"],
+     [("style", None), ("an example of the RENDER STYLE", 2)]),
+    # 블록 조립 루프와 첨부 루프의 순서가 어긋나면 여기서 잡힌다.
+    # 2026-08-16 실제로 어긋나 있었다 — 블록은 render→revise인데 첨부는
+    # revise→render였다. 두 루프를 따로 쓰는 한 이 케이스가 방어선이다.
+    ("렌더+이전 렌더본 (두 루프 순서 일치 검증)",
+     ["--ref-render", "render", "--revise", "revise"],
+     ["style", "render", "revise"],
+     [("style", None), ("an example of the RENDER STYLE", 2),
+      ("the previous render of this exact frame", 3)]),
     # 주의: 이 조합은 chain+anchor를 함께 넘긴다 — prompt-standard가 금지한
     # 조합이다(구도에서 싸운다). 여기서는 순번 계산만 검증하려고 쓴다.
     # CLI에서 혼용을 거부하게 되면 이 케이스는 "실패를 기대"로 바꾼다 (TODO).
     ("전부 (순번 계산 검증용 — 실사용 금지 조합 포함)",
-     ["--ref-character", "cs", "--ref-world", "world", "--ref-chain", "chain",
-      "--ref-anchor", "anchor", "--ref", "prod"],
-     ["style", "cs", "world", "chain", "anchor", "prod"],
-     [("style", None), ("a character sheet for the person", 2),
-      ("an earlier frame of the same world", 3),
-      ("the frame that comes immediately before", 4),
-      ("a composition anchor", 5),
+     ["--ref-render", "render", "--ref-character", "cs", "--ref-world", "world",
+      "--ref-chain", "chain", "--ref-anchor", "anchor", "--ref", "prod"],
+     ["style", "render", "cs", "world", "chain", "anchor", "prod"],
+     [("style", None), ("an example of the RENDER STYLE", 2),
+      ("a character sheet - or an approved anchor frame",3),
+      ("an earlier frame of the same world", 4),
+      ("the frame that comes immediately before", 5),
+      ("a composition anchor", 6),
       ("REMAINING attached image(s) are identity references", None)]),
 ]
 
@@ -70,7 +82,7 @@ PRODUCT_ONLY = "identity references for a real object"
 def main() -> int:
     tmp = Path(tempfile.mkdtemp(prefix="selftest_refs_"))
     imgs = {}
-    for name in ("style", "prod", "cs", "world", "chain", "anchor"):
+    for name in ("style", "prod", "cs", "render", "revise", "world", "chain", "anchor"):
         p = tmp / f"{name}.png"
         p.write_bytes(b"\x89PNG\r\n\x1a\n")  # 존재만 확인하므로 헤더면 충분
         imgs[name] = p

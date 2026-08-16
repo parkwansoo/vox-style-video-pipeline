@@ -28,14 +28,31 @@ ATTACH_STYLE_ONLY = """The attached image is a master style sheet: use it for ma
 # 첨부가 여럿일 때 공통으로 오는 스타일 시트 설명
 STYLE_HEAD_MULTI = """The FIRST attached image is a master style sheet: use it for materials and visual language only. Never copy its board layout, its sample words, or the specific props and subjects shown in it — those are samples, not content for this frame."""
 
+# 렌더 스타일 예시(2026-08-16 신설). 스타일 시트만으로는 인물 렌더가 전달되지
+# 않는다 — 보드 안에서 인물 패널이 화면의 5% 남짓이라 모델이 거기까지 파고들지
+# 않는다(앵커 후보 1~4 전부 스튜디오 사진으로 나왔다). 완성 프레임 한 장을
+# 크게 붙여 렌더 계열을 넘긴다.
+#
+# 정체성 제외가 이 역할의 핵심이다. 레퍼런스 인물과 이 편 주인공은 성별부터
+# 다를 수 있다 — 우리 원본은 남성이고 기미 편 주인공은 여성이다(2026-08-16
+# 사용자 확인: 주제에 따라 여성도 남성도 나온다). 그래서 얼굴·성별·나이·표정·
+# 포즈·프레이밍을 모두 명시적으로 뺀다.
+RENDER_TMPL = """{who} an example of the RENDER STYLE this frame must be drawn in - a finished frame from the same visual system. Take ONLY how it is rendered: the degree of stylisation, the way form is simplified into clean planes and masses rather than photographed detail, the smooth sculpted surface of the skin, hair modelled as glossy grouped masses rather than separate strands, and the way light sits on those surfaces. Do NOT take WHO is in it - not their face, not their gender, not their age, not their expression, not their pose and not their framing. The person in this frame is someone else entirely, described in the image prompt below, and is built in that same rendering language."""
+
 # --revise: 같은 컷을 다시 렌더할 때. 구도를 붙잡아 두고 재질·색만 고친다.
 # 새로 생성하면 구도가 매번 달라져 이미 통과한 화면 배치를 잃는다.
 REVISE_TMPL = """{who} the previous render of this exact frame. Treat it as the composition reference: keep its camera angle, framing, subject placement, scale, silhouette and overall layout unchanged — this is a re-render of the same shot, not a new scene. Where the style sheet and this previous render disagree with the image prompt below, the image prompt wins: change exactly what it asks to change and leave everything else as it is."""
 
-# 캐릭터 시트. 제품용(아래 REFS_BLOCK)을 그대로 쓰면 시트가 "실물 사물"이 되고
-# "재질을 그대로 유지하라"가 실사 렌더 보존 명령이 된다 — 2026-08-14 A·D·F1
-# 실사화의 원인.
-CHARACTER_TMPL = """{who} a character sheet for the person in this frame. Take ONLY their identity from it - face, hairstyle, body proportions and age. Do NOT take its rendering, lighting, grid layout, panel arrangement, backdrop, framing, or the expressions and poses of panels other than the one this prompt names. It is a reference sheet, not a photograph of a real object: render the person fresh in the style sheet's visual language."""
+# 캐릭터 시트(또는 승인된 앵커 프레임). 제품용(아래 REFS_BLOCK)을 그대로 쓰면
+# 시트가 "실물 사물"이 되고 "재질을 그대로 유지하라"가 실사 렌더 보존 명령이
+# 된다 — 2026-08-14 A·D·F1 실사화의 원인.
+#
+# 2026-08-16: `Do NOT take its rendering`을 뺐다. 그 문장은 시트가 실사였을 때
+# 넣은 방어막인데, 이제 앵커·시트는 **사용자가 게이트에서 승인한 정본**이라
+# 그림체를 반드시 승계해야 한다. 버리면 사용자가 고른 톤(확장형/핵심형)이
+# 시트로도 씬 컷으로도 전달되지 않아 선택 자체가 무의미해진다.
+# 조명·그리드·배경·비목표 패널 표정은 계속 제외한다 — 그건 컷마다 다르다.
+CHARACTER_TMPL = """{who} a character sheet - or an approved anchor frame - of the person in this frame. Take their identity from it: face, hairstyle, body proportions and age. Take ALSO the way they are drawn: the same degree of stylisation, the same skin and hair material, the same simplification of form into clean planes and masses. Do NOT take its lighting, its grid layout, panel arrangement or backdrop, its framing, or the expressions and poses of panels other than the one this prompt names. This frame's light, camera and expression are set by the image prompt below."""
 
 # 체인 프레임(앞 클립의 마지막 프레임, 또는 쌍의 first). 세계를 승계한다.
 #
@@ -97,6 +114,8 @@ def main():
                    help="제품 등 실물 정체성 레퍼런스 (반복 지정 가능)")
     # 참조 종류를 나눈다 — 종류마다 첨부 설명이 다르다. 제품용 문구를 캐릭터
     # 시트에 쓰면 시트의 실사 렌더가 그대로 승계된다 (2026-08-14 실측).
+    p.add_argument("--ref-render", action="append", default=[], metavar="PATH",
+                   help="렌더 스타일 예시 — 렌더 방식만. 정체성·성별·나이·표정·포즈는 제외")
     p.add_argument("--ref-character", action="append", default=[], metavar="PATH",
                    help="캐릭터 시트 — 정체성만 가져오고 렌더·그리드·배경은 제외")
     p.add_argument("--ref-world", action="append", default=[], metavar="PATH",
@@ -138,6 +157,7 @@ def main():
             out.append(ref)
         return out
 
+    render_refs = _resolve(args.ref_render, "렌더 스타일 참조")
     char_refs = _resolve(args.ref_character, "캐릭터 시트 참조")
     world_refs = _resolve(args.ref_world, "세계 앵커 참조")
     chain_refs = _resolve(args.ref_chain, "직전 프레임 참조")
@@ -152,12 +172,14 @@ def main():
     tmp_path = out_path.parent / f"{out_path.stem}__gen{uuid.uuid4().hex[:8]}.png"
 
     codex = os.environ.get("CODEX_BIN", "codex")
-    if revise_ref or char_refs or world_refs or chain_refs or anchor_refs or extra_refs:
+    if (render_refs or revise_ref or char_refs or world_refs or chain_refs
+            or anchor_refs or extra_refs):
         # 블록 순서 = 첨부 순서이고, 각 블록에 실제 첨부 순번을 박는다.
         # 제품은 항상 마지막이라 REFS_BLOCK의 "REMAINING"이 어떤 조합에서도 맞는다.
         blocks = [STYLE_HEAD_MULTI]
         pos = 2  # 1번은 스타일 시트
-        for group, tmpl in ((([revise_ref] if revise_ref else []), REVISE_TMPL),
+        for group, tmpl in ((render_refs, RENDER_TMPL),
+                            (([revise_ref] if revise_ref else []), REVISE_TMPL),
                             (char_refs, CHARACTER_TMPL),
                             (world_refs, WORLD_TMPL),
                             (chain_refs, CHAIN_TMPL),
@@ -184,8 +206,12 @@ def main():
     if args.model:
         cmd += ["-m", args.model]
     cmd += ["-i", str(style_ref)]
-    # 첨부 순서가 곧 블록의 순번이다 — 시트(1), 이전 렌더본, 캐릭터 시트,
-    # 직전 프레임, 구도 앵커, 제품(항상 마지막). 위 블록 조립과 같은 순서.
+    # 첨부 순서가 곧 블록의 순번이다 — 시트(1), 렌더 스타일 예시, 이전 렌더본,
+    # 캐릭터 시트, 세계 앵커, 직전 프레임, 구도 앵커, 제품(항상 마지막).
+    # 위 블록 조립 루프와 순서가 정확히 같아야 한다 (어긋나면 "Attachment N is"가
+    # 다른 이미지를 가리킨다).
+    for ref in render_refs:
+        cmd += ["-i", str(ref)]
     if revise_ref:
         cmd += ["-i", str(revise_ref)]
     for ref in char_refs + world_refs + chain_refs + anchor_refs + extra_refs:
