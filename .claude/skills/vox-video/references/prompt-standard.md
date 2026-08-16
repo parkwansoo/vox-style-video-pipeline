@@ -10,6 +10,9 @@
 기준선을 보존한다. 새 형식을 창작하지 않고, 검증된 원문과 블록 순서를 먼저
 복원한 뒤 개선점은 기존 블록 안의 지정 위치에만 얹는다.
 
+**프롬프트를 다 쓴 다음에는 9절 셀프체크를 돌린다** — 버린 표본의 결함은
+대부분 생성 전에 읽어서 잡을 수 있는 것이었다.
+
 ## 2. 블록 구조표
 
 모든 이미지 프롬프트의 첫 문장은 다음 원문으로 고정한다(40/40).
@@ -322,6 +325,46 @@ Her skin RENDERING is taken directly from the 3D character faces shown on the at
 CAMERA: A wide-angle lens held CLOSE and LOW, tilted up at her. The near side of her face reads noticeably larger than the far side, her shoulder falls away steeply beneath the lens and drops out of frame, and the sky-blue opens out wide behind her head. The line of her shoulders runs on a strong diagonal. This is a hooking, off-balance frame - never a centred, level, symmetrical portrait.
 ```
 
+**`CLOSE`는 빼지 않는다 — 분리 불가 부품이다 (2026-08-16 실측).**
+광각 로우앵글의 왜곡은 **거리에 의존한다.** 렌즈가 멀면 `LOW`도
+`tilted up`도 문장에 남아 있을 뿐 화면에 나타날 수가 없다. 기미 편 D
+실측(다른 조건 전부 동일, 거리 서술만 교체):
+
+| | 거리 서술 | 결과 |
+|---|---|---|
+| D v1 | `standing back far enough that ...` | **수평 정면·전신 — 로우앵글 소멸** |
+| D v2·v3 | `held CLOSE and LOW` (원문 유지) | 로우앵글·대각 어깨·off-balance 전부 나옴 |
+
+**미디엄·와이드가 필요해도 거리를 늘려 만들지 않는다.** `CLOSE`를 유지한
+채 아래 손잡이로 조절한다.
+
+**덧붙인 서술은 원문의 다른 부품을 움직인다 — 프레이밍 손잡이로 쓴다.**
+D v3은 v2에 아래 한 줄을 더한 것뿐인데 카메라가 뒤로 물러나 미디엄이 됐다
+(v2는 미디엄 클로즈). 그 서술을 만족시키려면 거리가 필요하기 때문이다.
+
+```text
+her raised elbow rises high against the sky-blue near the top of the picture
+```
+
+넓혀야 하는 컷에는 넣고, 좁혀야 하는 컷에는 넣지 않는다. `CLOSE` 삭제와는
+성질이 다르다 — 그건 로우앵글을 **통째로** 잃고, 이쪽은 **거리만** 움직인다.
+검증된 원문에 무엇을 더할 때는 그것이 거리·각도를 어느 쪽으로 미는지 먼저
+예상한다.
+
+**크롭은 씬 파일 원문을 그대로 옮긴다.** 기미 편 D에서 두 방향으로 어긋났다.
+
+| 방향 | 실제 | 결과 |
+|---|---|---|
+| **뒤집기** | "무릎 아래는 잘림" → `the crop falls below her knees` | 정강이까지 나옴 — 모델은 문장대로 그렸다 |
+| **좁히기** | 씬 파일은 무릎인데 AVOID에 `the picture ends at her waist`를 박음 | 씬 파일이 아니라 자기 기준으로 정상 결과를 감점 |
+
+크롭은 "어디서 자르나"가 아니라 **"무엇이 프레임 안에 없나"**로 쓰고,
+씬 파일보다 좁게도 넓게도 쓰지 않는다.
+
+```text
+the picture ends at her waist - nothing below it is in the frame
+```
+
 - 전용 AVOID: 다른 인물·젊어짐·글래머화, 정면·수평·대칭 초상 회귀,
   의도와 다른 표정, 과한 화장·액세서리를 해당 컷 원문의 표현 그대로 추가한다.
 
@@ -474,6 +517,24 @@ CONTINUITY: [슬롯: 체인 첨부 지칭] is the first frame of this exact shot
 드는지, STYLE+AVOID 배경 3층이 병원 인테리어를 막는지, 5행 라벨이 정면
 고정·회전 금지·6초 후 트림에서 유지되는지. 실제 이미지 재생성은 사용자
 검수 뒤 별도 작업으로 한다.
+
+## 9. 생성 전 셀프체크 (프롬프트를 쓴 다음, 실행하기 전)
+
+한 번에 통과하는 것을 기대하지 않는다 — 다만 **생성 전에 잡을 수 있는 것을
+생성 후에 잡지 않는다.** 아래 다섯은 전부 기미 편에서 실제로 한 장을 버린
+항목이고, 어느 것도 1분 이상 걸리지 않는다.
+
+1. **크롭·프레이밍이 씬 파일과 같은 방향이고 같은 범위인가.** 영문을
+   한국어로 되짚어 씬 파일 문장과 나란히 놓는다
+   (D v1: "무릎 아래는 잘림"이 `crop falls below her knees`로 뒤집혔다)
+2. **검증된 원문에서 뺀 단어가 있나.** 뺐다면 그게 왜 거기 있었는지 확인한다
+   (D v1: `CLOSE`를 빼자 로우앵글이 통째로 사라졌다)
+3. **검증된 원문에 더한 문장이 있나.** 더했다면 그것이 거리·각도를 어느
+   쪽으로 미는지 예상하고 쓴다 (D v3: 팔꿈치 서술이 카메라를 물렸다)
+4. **프롬프트가 침묵한 칸이 있나.** 하의·소품·배경을 안 쓰면 시트가 그 칸을
+   메운다 (D v1: 크롭이 정강이까지 내려가자 시트 전신 패널의 크림 바지가
+   따라왔다). 화면에 나오면 안 되는 것은 크롭이나 AVOID로 막는다
+5. **AVOID에 이 컷의 반대 상태가 있나** (3절 조립 형식의 첫 슬롯)
 
 ## 영상 프롬프트 구조
 
