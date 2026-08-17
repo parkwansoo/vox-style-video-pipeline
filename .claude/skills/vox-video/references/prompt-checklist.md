@@ -12,6 +12,11 @@
 ## 영상 프롬프트 작성 시
 
 ### 모든 컷
+- [ ] **SHOT 첫 문장이 첫 프레임을 서술하는가** — 단순·복잡 불문
+      `Open on ...: [배치 열거]` 또는 `exactly as the attached image -
+      [좌우 배치]`로 앵커한다. 추상 라벨("the wide view of ...")만 쓰는 것
+      금지 (clip1a 3연속 실패 → 열거로 픽셀 차 47.8→2.9. 08-02 두 편
+      32컷 전수가 서술로 열었다 — generation-craft §4)
 - [ ] AUDIO 블록에 `sound design only, no music, no narration` 포함
 - [ ] **사람이 입을 움직이는 장면인가?** → Flow가 목소리를 지어 넣는다.
       프롬프트로는 못 막는다(실측 2회) — 회수 후 check_clips.py가 잡는다는
