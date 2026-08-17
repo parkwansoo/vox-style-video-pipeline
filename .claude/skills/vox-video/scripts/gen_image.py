@@ -22,6 +22,11 @@ ORIENTATION = {"16:9": "landscape", "9:16": "vertical portrait"}
 
 HEADER = """Use your built-in native image generation tool (NOT the imagegen skill, NOT any external API or API key). Generate ONE {aspect} {orientation} image and save the image file as {name} in the current working directory. Do nothing else — no extra files, no commentary beyond confirming the save."""
 
+# gemini 백엔드용 헤더. 파일 저장 지시가 없다 — API가 이미지를 바이트로
+# 돌려주므로 저장은 이쪽 코드가 한다. 첨부 설명 블록과 본문은 codex와
+# 완전히 동일하게 재사용한다 (블록 문구가 이 편의 품질 규칙 그 자체다).
+GEMINI_HEADER = """Generate ONE {aspect} {orientation} image. Return the image itself - no text commentary."""
+
 # 첨부가 스타일 시트 한 장일 때 (기본)
 ATTACH_STYLE_ONLY = """The attached image is a master style sheet: use it for materials and visual language only. Never copy its board layout, its sample words, or the specific props and subjects shown in it — those are samples, not content for this frame."""
 
@@ -87,6 +92,77 @@ ANCHOR_TMPL = """{who} a composition anchor from an earlier frame in this film. 
 REFS_BLOCK = """The REMAINING attached image(s) are identity references for a real object that must appear in this frame. Keep each one's recognizable shape, proportions, colour, material and label layout exactly as shown, but render it in the style sheet's visual language rather than copying its original lighting or background. Do not redesign it, do not restyle its label, and do not invent extra text on it."""
 
 
+def _gemini_api_key():
+    """GEMINI_API_KEY를 환경 → 현재 디렉터리 .env 순으로 찾는다 (gen_video.py와 동일한 키)."""
+    key = os.environ.get("GEMINI_API_KEY", "").strip()
+    if key:
+        return key
+    env_path = Path(".env")
+    if env_path.is_file():
+        for line in env_path.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if line.startswith("GEMINI_API_KEY=") and not line.startswith("#"):
+                key = line.split("=", 1)[1].strip()
+                if key:
+                    return key
+    sys.exit("GEMINI_API_KEY가 비어 있습니다. 프로젝트 루트의 .env에 키를 입력하세요.")
+
+
+def _gemini_generate(model, refs, text, aspect, tmp_path):
+    """Gemini 이미지 모델(나노바나나 계열)로 생성해 tmp_path에 저장한다.
+
+    refs 순서는 codex 경로의 -i 첨부 순서와 동일해야 한다 — 첨부 설명 블록의
+    "Attachment N is"가 그 순서를 가리킨다.
+    """
+    from google import genai
+    from google.genai import types
+
+    client = genai.Client(api_key=_gemini_api_key(), vertexai=False)
+    contents = []
+    for rp in refs:
+        mime = "image/png" if rp.suffix.lower() == ".png" else "image/jpeg"
+        contents.append(types.Part.from_bytes(data=rp.read_bytes(), mime_type=mime))
+    contents.append(text)
+
+    # SDK/모델 버전에 따라 image_size·image_config 지원이 다르다 — 넓은 설정부터
+    # 시도하고 미지원 인자는 한 단계씩 내린다 (조용한 폴백이 아니라 로그를 남긴다).
+    attempts = [
+        dict(response_modalities=["TEXT", "IMAGE"],
+             image_config=types.ImageConfig(aspect_ratio=aspect, image_size="2K")),
+        dict(response_modalities=["TEXT", "IMAGE"],
+             image_config=types.ImageConfig(aspect_ratio=aspect)),
+        dict(response_modalities=["TEXT", "IMAGE"]),
+    ]
+    last_err = None
+    for i, kw in enumerate(attempts):
+        try:
+            r = client.models.generate_content(
+                model=model, contents=contents,
+                config=types.GenerateContentConfig(**kw))
+        except (TypeError, ValueError) as e:
+            last_err = str(e)
+            print(f"[image] gemini 설정 단계 {i} 미지원, 한 단계 내림: {e}",
+                  file=sys.stderr)
+            continue
+        img = None
+        texts = []
+        for cand in (r.candidates or []):
+            for part in (cand.content.parts or []):
+                if getattr(part, "inline_data", None) and part.inline_data.data:
+                    img = part.inline_data.data
+                elif getattr(part, "text", None):
+                    texts.append(part.text)
+            if img:
+                break
+        if img:
+            tmp_path.write_bytes(img)
+            return None
+        last_err = ("이미지 파트 없음. 모델 응답: " + " ".join(texts)[:500]) if texts \
+            else f"이미지 파트 없음 (finish: {r.candidates[0].finish_reason if r.candidates else '?'})"
+        break
+    return last_err
+
+
 def _who(start, count):
     """첨부 순번을 실제 위치로 박는다. 종류가 여럿일 때 'NEXT'를 반복하면
     어느 이미지인지 무너진다 (2026-08-15 실측: 캐릭터+체인 동시 사용 시
@@ -130,8 +206,12 @@ def main():
     p.add_argument("--aspect", default="16:9", choices=["16:9", "9:16"],
                    help="세로 스타일이면 9:16 (기본 16:9)")
     # 실측(stdin 수정 후): 한 장에 약 60초. 420초면 7배 여유다.
+    p.add_argument("--backend", default="codex", choices=["codex", "gemini"],
+                   help="codex(ChatGPT 구독 OAuth, 기본) 또는 gemini(GEMINI_API_KEY "
+                        "종량제 — 나노바나나 계열). 프롬프트 래퍼·첨부 순서는 동일")
     p.add_argument("--model", default="",
-                   help="codex 모델. 빈 문자열이면 ~/.codex/config.toml 기본값 사용")
+                   help="codex 모델(빈 문자열이면 config 기본값) / gemini 모델"
+                        "(빈 문자열이면 gemini-3-pro-image)")
     p.add_argument("--timeout", type=int, default=420)
     args = p.parse_args()
 
@@ -192,6 +272,34 @@ def main():
         attach = "\n\n".join(blocks)
     else:
         attach = ATTACH_STYLE_ONLY
+    if args.backend == "gemini":
+        wrapped = WRAPPER.format(
+            header=GEMINI_HEADER.format(aspect=args.aspect,
+                                        orientation=ORIENTATION[args.aspect]),
+            attach=attach,
+            prompt=prompt,
+        )
+        # 첨부 순서는 codex 경로의 -i 순서와 동일 (블록 순번이 이 순서를 가리킨다)
+        ordered = ([style_ref] + render_refs
+                   + ([revise_ref] if revise_ref else [])
+                   + char_refs + world_refs + chain_refs + anchor_refs + extra_refs)
+        model = args.model or "gemini-3-pro-image"
+        last_err = None
+        for attempt in range(2):
+            try:
+                last_err = _gemini_generate(model, ordered, wrapped,
+                                            args.aspect, tmp_path)
+            except Exception as e:  # 네트워크·API 오류 — 1회 재시도
+                last_err = f"{type(e).__name__}: {e}"
+            if tmp_path.is_file() and tmp_path.stat().st_size > 0:
+                os.replace(tmp_path, out_path)
+                print(json.dumps({"out": str(out_path), "backend": "gemini",
+                                  "model": model}, ensure_ascii=False))
+                return
+            print(f"[image] gemini 실패 (시도 {attempt + 1}): {last_err}",
+                  file=sys.stderr)
+        sys.exit(f"이미지 생성 실패 (gemini/{model}): {last_err}")
+
     wrapped = WRAPPER.format(
         header=HEADER.format(name=tmp_path.name, aspect=args.aspect,
                              orientation=ORIENTATION[args.aspect]),
