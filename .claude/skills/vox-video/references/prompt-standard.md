@@ -540,6 +540,15 @@ CONTINUITY: [슬롯: 체인 첨부 지칭] is the first frame of this exact shot
    (기미 편 J: 파랑을 `a soft sliver ... at one edge`로 몰았더니 구슬이
    화면을 덮어 무엇인지 알 수 없었다. 통과본 E는
    `A band of soft sky-blue runs across the upper frame`이었다)
+7. **옮겨온 원문의 각 문장이 이 컷에서 참인가.** 2·3번은 원문에서 *뺀 것*과
+   *더한 것*을 보지만, 원문을 **그대로** 옮겼는데 그 문장이 이 컷의 상태와
+   어긋나는 경우가 따로 있다. SPEC·기준 원문은 **표준 상태**를 전제하고
+   쓰였으므로, 컷이 그 상태를 벗어나면 문장 하나하나를 다시 읽는다
+   - 기미 편 N: 스포이드를 뽑은 컷인데 `CONTENTS: the internal glass pipette
+     shows through the oil`(닫힌 상태 전제)을 그대로 둬서, CAP의 "뽑혔다"와
+     모순돼 **피펫이 두 개** 그려졌다
+   - 기미 편 L: 병이 프레임의 1/5인 컷에 라벨 5행 판독을 요구해 글자가
+     깨졌다. 그 크기에서는 참일 수 없는 요구였다
 
 ## 영상 프롬프트 구조
 
