@@ -12,7 +12,7 @@
 | 무엇을 할 때 | 문서 |
 |---|---|
 | 파이프라인 전체·단계별 절차 | `.claude/skills/vox-video/SKILL.md` |
-| 이미지·영상 프롬프트, 검수 절차 | `.claude/skills/vox-video/references/pipeline-rules.md`, `generation-craft.md` |
+| 이미지·영상 프롬프트, 검수 절차 | `.claude/skills/vox-video/references/pipeline-rules.md`, `generation-craft.md`, **컷마다 `prompt-checklist.md`** |
 | mg-bodylab soft 3D 프롬프트 원문·블록 표준 | `.claude/skills/vox-video/references/prompt-standard.md` |
 | 씬 설계 절차·체크리스트 | `.claude/skills/vox-video/references/scene-design.md` |
 | 전환 문법 (ZDF 실측) | `.claude/skills/vox-video/references/zdf-grammar.md` |
