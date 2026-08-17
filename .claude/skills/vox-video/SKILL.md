@@ -620,6 +620,11 @@ node subtitler/scripts/render.mjs --run output/<run> --video final_wm.mp4
   `ffmpeg -ss <t> -i final_sub.mp4 -frames:v 1`로 뽑아 화면의 자막이 captions.json의
   그 시각 조각과 일치하는지, 한 줄로 나오는지 Read로 확인한다 — 특히 챕터
   경계 직후 컷 하나는 반드시 본다 (드리프트 보정 확인).
+- **검수 엑셀 동기화 확인** (2026-08-18 도입): `ch<N>/scenes/*.md`와
+  `manifest.json`의 최종 수정 시각이 `씬설계_검수.xlsx`보다 뒤면 생성기를
+  돌려 재생성한다. 씬 파일 수정 턴마다 재생성하는 규칙(scene-design.md)이
+  합본·확정 턴에서 누락되는 사고가 실제로 났다 — 기미 오일 편에서 08-17
+  트림·램프·설계 변경 확정이 엑셀에 하루 넘게 반영되지 않았다.
 - 최종 영상(자막본이 기본, `final_sub.mp4`)을 SendUserFile로 사용자에게 전달하고,
   스토리 요약·클립 구성(몇 초에 무엇이 나오는지)을 함께 보고한다.
 
