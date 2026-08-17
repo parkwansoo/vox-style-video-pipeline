@@ -34,11 +34,25 @@ the generated video to use (keyframe trim, 2026-08-13): generate long (6s),
 keep the good part. Defaults: in = --trim (0.25), out = end of file. Two clips
 may share one file with different ranges (one-take split across segments).
 
+Optional per-clip "ramp" (speed ramp, 2026-08-17 — docs/설계-속도램프.md):
+  "ramp": [{"src": [0.0, 4.5], "dur": 0.5}, {"src": [4.5, 6.016], "dur": 0.98}],
+  "ease": 0.3
+Variable speed inside one clip: each keyframe maps a source span to an output
+duration (rate = span/dur, must be >= 1.0 — no slow-motion). Boundaries are
+eased with a smoothstep over "ease" output-seconds (default 0.3; 0 = hard
+step), expanded automatically into ~0.08s micro-segments so the speed change
+reads as an AE-style eased ramp, not a jump. "ramp" replaces "in"/"out" and
+the automatic rate fitting for that clip; keep sum(dur) equal to the clip's
+narration segment (plus its trailing xfade, if any) or sync drifts. Clip audio
+is kept and tempo-ramped along (atempo per segment).
+
 Usage:
   python3 assemble.py --manifest manifest.json --out final.mp4 [--music-dir music]
 """
 import argparse
+import bisect
 import json
+import math
 import os
 import random
 import shutil
@@ -149,6 +163,100 @@ def atempo_chain(rate):
         r /= 0.5
     parts.append(r)
     return ",".join(f"atempo={p:.5f}" for p in parts)
+
+
+def expand_ramp(ramp, ease, fps, name=""):
+    """램프 키프레임을 이징 미세 조각으로 전개한다 (설계: docs/설계-속도램프.md).
+
+    입력: [{"src": [s0, s1], "dur": D}, ...] — 소스 구간과 그 구간이 출력에서
+    차지할 길이. 반환: [(src_in, src_out, out_dur), ...].
+
+    경계 ±ease/2(출력 초)를 smoothstep으로 가감속해 AE 이지 이즈처럼 만든다.
+    대칭 smoothstep 전이는 소비하는 소스 길이를 계단 프로파일과 정확히 같게
+    보존하므로(적분 동일), 이징을 넣어도 소스·출력 총량이 변하지 않아
+    나레이션 싱크가 유지된다. 배율 1.0 미만(슬로모)은 프레임 합성이 필요한
+    별개 문제라 거부한다.
+    """
+    spans = []  # (out_start, out_end, rate) — 출력 시간축 기준
+    src0 = float(ramp[0]["src"][0])
+    acc_out, prev_end = 0.0, src0
+    for i, kf in enumerate(ramp):
+        s0, s1 = float(kf["src"][0]), float(kf["src"][1])
+        d = float(kf["dur"])
+        if s1 <= s0 or d <= 0:
+            sys.exit(f"{name} ramp[{i}]: src/dur가 잘못됐습니다: {kf}")
+        if abs(s0 - prev_end) > 1e-6:
+            sys.exit(f"{name} ramp[{i}]: src가 이어지지 않습니다 ({prev_end} → {s0})")
+        rate = (s1 - s0) / d
+        if rate < 0.999:
+            sys.exit(f"{name} ramp[{i}]: 배율 {rate:.2f}x < 1.0 — 슬로모(프레임 "
+                     "합성)는 지원하지 않습니다. dur를 줄이세요.")
+        spans.append((acc_out, acc_out + d, rate))
+        acc_out += d
+        prev_end = s1
+    total_out, src_end = acc_out, prev_end
+    if len(spans) == 1 or ease <= 0:
+        cuts = [s for s, _, _ in spans] + [total_out]
+        rates = [r for _, _, r in spans]
+        segs, pos = [], src0
+        for k, r in enumerate(rates):
+            d = cuts[k + 1] - cuts[k]
+            segs.append((pos, pos + r * d, d))
+            pos += r * d
+        return segs
+
+    bounds = [s for s, _, _ in spans] + [total_out]
+
+    def rate_at(t):
+        i = min(max(bisect.bisect_right(bounds, t) - 1, 0), len(spans) - 1)
+        d_i = spans[i][1] - spans[i][0]
+        if i > 0:  # 왼쪽 경계 전이
+            w = min(ease, spans[i - 1][1] - spans[i - 1][0], d_i)
+            if w > 0 and t < bounds[i] + w / 2:
+                r0, r1 = spans[i - 1][2], spans[i][2]
+                x = min(max((t - (bounds[i] - w / 2)) / w, 0.0), 1.0)
+                return r0 + (r1 - r0) * (3 * x * x - 2 * x * x * x)
+        if i < len(spans) - 1:  # 오른쪽 경계 전이
+            w = min(ease, d_i, spans[i + 1][1] - spans[i + 1][0])
+            if w > 0 and t > bounds[i + 1] - w / 2:
+                r0, r1 = spans[i][2], spans[i + 1][2]
+                x = min(max((t - (bounds[i + 1] - w / 2)) / w, 0.0), 1.0)
+                return r0 + (r1 - r0) * (3 * x * x - 2 * x * x * x)
+        return spans[i][2]
+
+    # 분절점: 상수 구간은 통짜, 전이 창은 ~0.08s 간격 미세 조각
+    cuts = {0.0, round(total_out, 6)}
+    for k in range(1, len(spans)):
+        w = min(ease, spans[k - 1][1] - spans[k - 1][0], spans[k][1] - spans[k][0])
+        if w <= 1e-9:
+            cuts.add(round(bounds[k], 6))
+            continue
+        steps = max(4, int(round(w / 0.08)))
+        for j in range(steps + 1):
+            c = bounds[k] - w / 2 + w * j / steps
+            cuts.add(round(min(max(c, 0.0), total_out), 6))
+    cuts = sorted(cuts)
+
+    # 누적 사다리꼴 적분으로 각 분절점의 소스 위치를 구한다
+    dt = 1.0 / (4 * fps)
+    s_at = [src0]
+    for a, b in zip(cuts, cuts[1:]):
+        n_sub = max(int(math.ceil((b - a) / dt)), 1)
+        h = (b - a) / n_sub
+        acc = 0.0
+        for m in range(n_sub):
+            acc += (rate_at(a + m * h) + rate_at(a + (m + 1) * h)) / 2 * h
+        s_at.append(s_at[-1] + acc)
+    # 수치 오차를 비례 배분해 끝점을 소스 끝에 정확히 맞춘다
+    scale = (src_end - src0) / (s_at[-1] - src0)
+    s_at = [src0 + (s - src0) * scale for s in s_at]
+
+    segs = []
+    for k in range(len(cuts) - 1):
+        d = cuts[k + 1] - cuts[k]
+        if d > 1e-6 and s_at[k + 1] - s_at[k] > 1e-6:
+            segs.append((s_at[k], s_at[k + 1], d))
+    return segs
 
 
 def starts_of(durations, xfades):
@@ -264,17 +372,44 @@ def main():
     # 배속 상한에 걸리던 짧은 나레이션 구간도 트림으로 해결된다. 같은 파일을
     # 두 클립이 다른 구간으로 나눠 쓸 수 있다 (원테이크 분배, 2026-08-13).
     # "in" 생략 시 기본 앞트림(args.trim), "out" 생략 시 파일 끝.
-    ins, outs, slacks = [], [], []
+    # 속도 램프(가변 배속): manifest 클립의 "ramp"가 있으면 in/out·자동 배속
+    # 맞춤을 대체한다 — 소스 구간별 출력 길이를 키프레임으로 지정하고, 경계는
+    # "ease"(기본 0.3s)만큼 smoothstep으로 가감속한다 (docs/설계-속도램프.md).
+    ins, outs, slacks, ramps = [], [], [], []
     for _, _, clip in flat:
         if not os.path.exists(clip["file"]):
             sys.exit(f"클립 파일 없음: {clip['file']}")
         dur = ffprobe_duration(clip["file"])
+        seg = float(clip["seg_end"]) - float(clip["seg_start"])
+        if clip.get("ramp"):
+            if "in" in clip or "out" in clip:
+                print(f"[경고] {os.path.basename(clip['file'])}: ramp가 있어 "
+                      "in/out은 무시합니다 (ramp의 src가 사용 구간을 정합니다).",
+                      file=sys.stderr)
+            segs_r = expand_ramp(clip["ramp"], float(clip.get("ease", 0.3)),
+                                 args.fps, os.path.basename(clip["file"]))
+            t_in, t_out = segs_r[0][0], segs_r[-1][1]
+            if not 0 <= t_in < t_out <= dur + 0.05:
+                sys.exit(f"{clip['file']}: ramp src({t_in:.2f}~{t_out:.2f})가 "
+                         f"파일 길이 {dur:.2f}s와 안 맞습니다")
+            out_len = sum(d for _, _, d in segs_r)
+            eff = t_out - t_in
+            if out_len < seg - 0.02:
+                print(f"[경고] {os.path.basename(clip['file'])}: ramp 출력 "
+                      f"{out_len:.2f}s가 나레이션 구간 {seg:.2f}s보다 짧습니다 — "
+                      "끝에 빈 화면이 생깁니다. dur 합계를 맞추세요.",
+                      file=sys.stderr)
+            ramps.append(segs_r)
+            ins.append(t_in)
+            outs.append(min(t_out, dur))
+            slacks.append((eff, seg, max(out_len - seg, 0.0)))
+            continue
+        ramps.append(None)
         t_in = float(clip.get("in", args.trim))
         t_out = float(clip.get("out", dur))
         if not 0 <= t_in < t_out <= dur + 0.05 or t_in >= dur:
             sys.exit(f"{clip['file']}: in/out({t_in}/{t_out})이 파일 길이 {dur:.2f}s와 안 맞습니다")
         eff = min(t_out, dur) - t_in
-        seg = float(clip["seg_end"]) - float(clip["seg_start"])
         if eff < seg - 0.02:
             print(f"[경고] {os.path.basename(clip['file'])}: 사용 구간 {eff:.2f}s가 "
                   f"나레이션 구간 {seg:.2f}s보다 짧습니다 — 끝에 빈 화면이 생깁니다. "
@@ -297,9 +432,21 @@ def main():
         eff, seg, _ = slacks[idx]
         x_next = xfades[idx] if idx < n - 1 else 0.0
         target = seg + x_next          # 전환 겹침만큼 길게 남긴다
+        ramp_segs = ramps[idx]
 
         rate = 1.0
-        if args.fit_clips and target > 0.05 and eff > target:
+        if ramp_segs:
+            out_len = sum(d for _, _, d in ramp_segs)
+            rate = eff / out_len       # 평균 배율 (보고·기록용)
+            # 배율은 키프레임의 명시적 의도이므로 --max-rate 경고는 걸지 않는다.
+            if abs(out_len - target) > 0.05:
+                print(
+                    f"[경고] ch{ci} clip{si}: ramp 출력 합계 {out_len:.2f}s가 "
+                    f"목표 {target:.2f}s(나레이션{'+전환' if x_next else ''})와 "
+                    "다릅니다 — 뒤 클립부터 싱크가 밀립니다.",
+                    file=sys.stderr,
+                )
+        elif args.fit_clips and target > 0.05 and eff > target:
             rate = min(eff / target, args.max_rate)
             if eff / target > args.max_rate + 1e-6:
                 print(
@@ -315,10 +462,11 @@ def main():
         chain = []
         if args.delogo:
             chain.append(delogo_filter(args.delogo, src))
-        if rate != 1.0:
+        if not ramp_segs and rate != 1.0:
             chain.append(f"setpts=PTS/{rate:.5f}")
         if zoom or shake:
-            nf = max(int(round(eff / rate * args.fps)), 1)
+            out_dur = out_len if ramp_segs else eff / rate
+            nf = max(int(round(out_dur * args.fps)), 1)
             # 앞 전환이 겹쳐 있는 동안은 타격을 미룬다 (zoom_filter의 delay)
             d = int(round((xfades[idx - 1] if idx > 0 else 0.0) * args.fps))
             chain += [fit_vf(w * ss, h * ss),
@@ -328,14 +476,39 @@ def main():
             chain += [fit_vf(w, h), "format=yuv420p"]
 
         dst = os.path.join(tmp, f"norm_{idx:02d}.mp4")
-        cmd = ["ffmpeg", "-y", "-ss", str(ins[idx]), "-t", f"{outs[idx] - ins[idx]:.3f}",
-               "-i", src]
         src_has_audio = has_audio(src)
-        if not src_has_audio:
-            cmd += ["-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo", "-shortest"]
-        cmd += ["-vf", ",".join(chain)]
-        if src_has_audio and rate != 1.0:
-            cmd += ["-af", atempo_chain(rate)]
+        if ramp_segs:
+            # 미세 조각을 trim/setpts(영상)·atrim/atempo(오디오)로 잘라 concat.
+            # 한 번의 인코드로 끝낸다 — 중간 파일을 만들면 화질이 두 번 깎인다.
+            fc, vl, al = [], [], []
+            for k, (a, b, d_out) in enumerate(ramp_segs):
+                r = (b - a) / d_out
+                fc.append(f"[0:v]trim=start={a:.4f}:end={b:.4f},"
+                          f"setpts=(PTS-STARTPTS)/{r:.5f}[v{k}]")
+                vl.append(f"[v{k}]")
+                if src_has_audio:
+                    fc.append(f"[0:a]atrim=start={a:.4f}:end={b:.4f},"
+                              f"asetpts=PTS-STARTPTS,{atempo_chain(r)}[a{k}]")
+                    al.append(f"[a{k}]")
+            if src_has_audio:
+                fc.append("".join(v + a for v, a in zip(vl, al)) +
+                          f"concat=n={len(ramp_segs)}:v=1:a=1[vr][ar]")
+            else:
+                fc.append("".join(vl) + f"concat=n={len(ramp_segs)}:v=1:a=0[vr]")
+                fc.append(f"anullsrc=r=48000:cl=stereo,atrim=0:{out_len:.3f}[ar]")
+            fc.append(f"[vr]{','.join(chain)}[vout]")
+            cmd = ["ffmpeg", "-y", "-i", src,
+                   "-filter_complex", ";".join(fc),
+                   "-map", "[vout]", "-map", "[ar]"]
+        else:
+            cmd = ["ffmpeg", "-y", "-ss", str(ins[idx]),
+                   "-t", f"{outs[idx] - ins[idx]:.3f}", "-i", src]
+            if not src_has_audio:
+                cmd += ["-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo",
+                        "-shortest"]
+            cmd += ["-vf", ",".join(chain)]
+            if src_has_audio and rate != 1.0:
+                cmd += ["-af", atempo_chain(rate)]
         cmd += [
             "-c:v", "libx264", "-preset", "medium", "-crf", "18",
             "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-ac", "2",
@@ -345,7 +518,7 @@ def main():
         norm_paths.append(dst)
         durations.append(ffprobe_duration(dst))
         rates.append(round(rate, 3))
-        clip_meta.append({
+        meta = {
             "global": idx, "chapter": ci, "clip": si, "file": src,
             "narration": manifest["chapters"][ci - 1]["narration"],
             "seg_start": float(clip["seg_start"]),
@@ -353,7 +526,15 @@ def main():
             "in": round(ins[idx], 3), "out": round(outs[idx], 3),
             "zoom": zoom, "shake": shake,
             "transition": clip.get("transition", args.transition),
-        })
+        }
+        if ramp_segs:
+            # 전개된 조각을 그대로 기록한다 — 실물 대조(어느 출력 시각이 소스
+            # 몇 초인가)와 자막·검수 단계가 이걸 근거로 삼는다.
+            meta["ramp"] = [
+                {"src": [round(a, 4), round(b, 4)], "dur": round(d_, 4),
+                 "rate": round((b - a) / d_, 3)}
+                for a, b, d_ in ramp_segs]
+        clip_meta.append(meta)
 
     # 자막 등 후속 단계는 클립별 시작 시각(offset)이 필요하다. seg_start를 그대로
     # 쓰면 안 된다 — 정규화는 프레임 단위로 반올림하므로 클립마다 수십 ms씩 밀리고
