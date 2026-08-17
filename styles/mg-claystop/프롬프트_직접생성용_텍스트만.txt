@@ -1,0 +1,17 @@
+Generate ONE 16:9 landscape image. This is a single art-direction reference board — a style guide sheet with labelled panels, not a scene illustration. Render every panel and every labelled swatch described below, and print the sample words exactly as written.
+
+MASTER STYLE SHEET - MG-CLAYSTOP visual system, one 16:9 reference board. A single polished art-direction sheet defining the visual language for a deadpan everyday-life explainer series. Editorial grid, consistent margins, section labels. Baked-in typography is intentional here (this is a style guide).
+
+SURFACE & MOOD: soft out-of-focus greige field (#CDC4BB), a shallow set or seamless sweep, never sharp. Mood: deadpan, melancholic, handmade, tactile.
+
+TYPE SPECIMEN PANEL: H1 sample "NOT AGAIN" in chunky rounded sans caps, baselines slightly uneven; a caption sample "Tuesday, 6pm" in the same face. Typography chunky, hand-set, no warped letters.
+
+PALETTE STRIP: labeled swatches - Studio Greige #CDC4BB, Puppet Skin #CA8C73, Sculpt Umber #965F42, Contact Shadow #503B27. Studio Greige is background only and never touches a puppet; each character carries exactly one saturated garment colour and every other surface stays desaturated.
+
+COMPONENT ZOO PANEL: an oversized sculpted cranium on small sloping shoulders; large glossy eyeballs with tiny pupils under drooping lids; a downturned mouth pressed in as one crease; hair built from separate pieces, clay strips or punched fibre; a knitted garment in one saturated colour, matte, fibre visible; a small everyday prop at true scale. All share one construction logic: real handmade puppets on a macro lens, matte surfaces with visible fabrication marks, soft diffuse light.
+
+MINI-SCENE PANEL: 3 small example frames - (a) a close puppet portrait, one saturated jumper filling the lower frame, (b) two puppets at different heights, both deadpan, background thrown out, (c) a macro on sculpted hands turning a small everyday prop. Same lighting and finish throughout.
+
+MOTION THUMBNAILS: 4 tiny storyboard frames with arrows only: stop-motion staccato, reduced frame rate / a slow blink from two swapped lids / the head turns in stepped increments and settles / a focus rack from prop to face.
+
+FINISH: visible fingerprints, tool marks and fibre texture, shallow macro depth of field, no glossy CG highlights, no photorealistic human skin, no perfectly smooth surfaces. No watermarks, no lorem ipsum, no unrelated logos, no random gibberish text - every visible word is either one of the samples above or a short editorial panel label naming that panel or component.

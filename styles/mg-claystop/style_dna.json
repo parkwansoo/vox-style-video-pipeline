@@ -1,0 +1,61 @@
+{
+  "system_name": "MG-CLAYSTOP",
+  "series_type": "deadpan everyday-life",
+  "surface": "soft out-of-focus greige field (#CDC4BB), a shallow set or seamless sweep, never sharp",
+  "mood": ["deadpan", "melancholic", "handmade", "tactile"],
+  "type_specimen": "H1 sample \"NOT AGAIN\" in chunky rounded sans caps, baselines slightly uneven; a caption sample \"Tuesday, 6pm\" in the same face",
+  "type_quality": ["chunky", "hand-set"],
+  "palette": [
+    {"name": "Studio Greige", "hex": "#CDC4BB"},
+    {"name": "Puppet Skin", "hex": "#CA8C73"},
+    {"name": "Sculpt Umber", "hex": "#965F42"},
+    {"name": "Contact Shadow", "hex": "#503B27"}
+  ],
+  "color_rules": "Studio Greige is background only and never touches a puppet; each character carries exactly one saturated garment colour and every other surface stays desaturated",
+  "components": [
+    "an oversized sculpted cranium on small sloping shoulders",
+    "large glossy eyeballs with tiny pupils under drooping lids",
+    "a downturned mouth pressed in as one crease",
+    "hair built from separate pieces, clay strips or punched fibre",
+    "a knitted garment in one saturated colour, matte, fibre visible",
+    "a small everyday prop at true scale"
+  ],
+  "construction_logic": "real handmade puppets on a macro lens, matte surfaces with visible fabrication marks, soft diffuse light",
+  "mini_scenes": [
+    "a close puppet portrait, one saturated jumper filling the lower frame",
+    "two puppets at different heights, both deadpan, background thrown out",
+    "a macro on sculpted hands turning a small everyday prop"
+  ],
+  "motion_signature": [
+    "stop-motion staccato, reduced frame rate",
+    "a slow blink from two swapped lids",
+    "the head turns in stepped increments and settles",
+    "a focus rack from prop to face"
+  ],
+  "stage": null,
+  "finish": [
+    "visible fingerprints, tool marks and fibre texture",
+    "shallow macro depth of field",
+    "no glossy CG highlights",
+    "no photorealistic human skin",
+    "no perfectly smooth surfaces"
+  ],
+  "confidence": {
+    "palette": "high — extract_palette.py 실측, 4색 모두 2/2 shared",
+    "color_rules": "high — 두 장 모두 의상 1색만 고채도, 나머지 저채도",
+    "construction_logic": "medium — 매체가 갈린다(점토 vs 심은 섬유 퍼펫). 공통 상위 개념으로 통합",
+    "components": "medium — 레퍼런스 2장(권장 하한)이라 과반 규칙의 판별력이 약하다",
+    "type_specimen": "low — 레퍼런스에 글자가 없어 전부 창작",
+    "motion_signature": "low — 정지 이미지에서 추론",
+    "stage": "high — 배경이 서로 달라 null로 확정"
+  },
+  "rejected": [
+    "#8F8E79 올리브 그레이 — shared:false, 1번 세트 배경에만",
+    "#EAD376 노랑 — shared:false, 1번 티셔츠. 팔레트에서 빼고 '의상 1색' 규칙으로 승격",
+    "실내 세트(코르크보드·액자·소파) — 1번에만 등장, 소재",
+    "회색 무한 스윕 — 2번에만 등장, 소재. THE STAGE를 null로 둔 근거",
+    "안경·귀걸이 — 2번에만 등장, 소재",
+    "스크린샷 UI 오버레이('AI 수정', 우측 아이콘) — 캡처 노이즈",
+    "찡그린 표정 자체 — 2/2로 나타나지만 mood로만 반영, mini_scenes에 강제하지 않음"
+  ]
+}

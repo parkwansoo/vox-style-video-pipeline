@@ -47,3 +47,5 @@ mg-bodylab의 **주제 반영 변형**. 동일한 레퍼런스 13장(SHA 대조�
 | `프롬프트_직접생성용_레퍼런스첨부.txt` | 외부 도구 직접 생성용 (레퍼런스 13장 첨부 시) |
 | `palette_raw.json` | mg-bodylab에서 복사한 k-means 실측값 |
 | `style_reference.png` | 생성된 시트 |
+| `style_reference_alt.png` | 대안 렌더 |
+| `style_reference_v3아시아인물.png` | 제3 렌더 (외부 도구 직접 생성 추정, 2026-08-03 캡처) — 유일하게 인물이 아시아계라 한국인 주인공 시리즈용 후보. 2026-08-18 정리 때 미추적 스크린샷으로 발견해 개명·보존 |
