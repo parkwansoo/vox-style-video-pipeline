@@ -23,7 +23,6 @@
 - [ ] 2026-08-03 Flow 워터마크 대응 검토 — Pro 구독은 Visible watermarking을 못 끈다. 광고 용도면 후처리 제거나 자막·타이틀 레이어로 가리는 방안이 필요 — assemble 단계
 - [ ] 2026-08-03 prepare_flow_jobs.py 챕터별 경로 분리를 flow-browser.md 예시에 반영 — 출력이 `run-v01/ch<N>/jobs.json`으로 바뀌었다 (커밋 참조) — references/flow-browser.md
 - [ ] 2026-08-03 이미지 생성 시간이 프롬프트 길이에 비례하는지 검증 — 실측: 첨부1장·1.4k자 약 1분 / 첨부2장·3.0k자 4~7분 / 첨부2장·4.1k자 3분29초(재시도 3회는 7분 타임아웃). AVOID에 금지구를 덧붙일수록 길어지므로 중복 정리 기준이 필요 — scripts/gen_image.py, references/pipeline-rules.md
-- [ ] 2026-08-03 **무음 압축 기본값(sentence 0.45/0.25/0.20) 청감 확인** — 수치는 실측 근거가 있지만 귀로는 아직 검증 안 됨. `output/20260802-melasma-vgshot/test-audio/`의 sentence/tight/uniform 3종 비교. 어색하면 `--silence-sentence` 등으로 조정 — scripts/compress_silence.py PRESETS
 - [ ] 2026-08-03 무음 압축을 실제 TTS 합성 경로로 E2E 검증 — 지금까지는 기존 나레이션으로 2패스 흐름만 재현했다(합성 단계 제외, 과금 회피). 다음 영상 제작 때 자연히 검증되며 `silence_compression` 요약을 확인하면 된다 — scripts/tts.py
 - [ ] 2026-08-03 배속 시 프레임 보간(`minterpolate`) 도입 검토 — 현재는 `setpts`만 써서 프레임을 버린다(1.886x에서 48% 드롭). 실측 배율 1.05~1.36 구간에서는 사용자가 "생동감 있다"고 판단해 보류. 큰 배율이 자주 나오면 재검토하며, 비용은 클립당 +7초 수준 — scripts/assemble.py
 - [ ] 2026-08-03 보이스·TTS배속 변경 시 무음 패턴 재검증 — 측정은 전부 Kore/1.3배속 기준. 정렬률 안전 마진은 크다(1.0/0.91) — TODO 8번과 함께 처리
@@ -99,6 +98,7 @@
 
 ## 완료
 
+- [x] 2026-08-03 **무음 압축 기본값(sentence 0.45/0.25/0.20) 청감 확인** — 수치는 실측 근거가 있지만 귀로는 아직 검증 안 됨. `output/20260802-melasma-vgshot/test-audio/`의 sentence/tight/uniform 3종 비교. 어색하면 `--silence-sentence` 등으로 조정 — scripts/compress_silence.py PRESETS → **2026-08-18 종결 (사용자 확인)**: 페이스오일·기미 오일 두 편의 최종본을 직접 들었고 말 사이 쉼에 대한 지적이 없었다 — 기본값 유지
 - [x] 2026-08-15 **[감사 P1] 검수 엑셀 생성 재현성 확보** — ignored 런 전용 생성기를 추적되는 스킬 스크립트로 승격하고 프로젝트 의존성에 `openpyxl` 추가, 3시트·병합·동기화 테스트 작성 — `.claude/skills/vox-video/references/scene-design.md:128`, `requirements.txt` → **2026-08-18 완료**: 레이아웃 엔진을 `scripts/make_review_xlsx.py`로 승격(`--selftest`가 3시트·세로 병합·빈행 병합·게이트 강조·행 높이 검증), openpyxl은 requirements에 기존재 확인, 기미 오일 편 생성기를 엔진 호출 데이터 파일로 전환해 신구 산출 셀 단위 전수 비교 0차이 확인. 동기화 검사는 SKILL 8단계 mtime 게이트(08-18 신설)가 담당
 - [x] 2026-08-02 mg-bodylab NOTES.md에 권장 배속 1.3 기록 (완료 섹션으로 이동)
 - [x] 2026-08-10 **프레이밍 메뉴 희석 방지책** → 2026-08-12 pipeline-rules 프레이밍 절에 승격 완료 (2런 검증: 1세대 인물 10컷 + 2세대 24컷). [ ] → [x] 처리하되 원문 유지: — faceoil clip1 초판이 정면 정적으로 나온 원인: HERO LOW를 메뉴 원문("wide-angle lens from below the eye line, camera close and tilted up")이 아니라 "lens a little below her eye line"으로 희석해 썼고, 정면 금지 AVOID도 없었다. AVOID(어안·콧구멍)만 원문대로 넣어 왜곡 방지만 세게 걸린 것도 역효과. v4에서 통한 처방: 전용 CAMERA 블록 + 앵글을 '보이는 결과'(턱 아래 보임·어깨가 렌즈 아래)로 서술 + "centred, level, symmetrical portrait" 금지. 이번 런 인물 컷 10장에 적용했고, 결과 확인 후 pipeline-rules 프레이밍 절에 "메뉴 문구는 원문 그대로 + 반대 방향 AVOID 필수"로 승격 검토 — output/20260810-faceoil-review/ch1/clip1_img.txt
