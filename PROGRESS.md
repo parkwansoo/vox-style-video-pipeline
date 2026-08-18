@@ -2324,3 +2324,80 @@ N2(손 제거·부양, clip10의 실제 end) 미기록, scene11의 진입 문법
   아니라 vgshot 마스터 시트의 **제3 렌더**였다(정본·alt와 실물 대조로
   확인). 유일하게 인물이 아시아계라 한국인 주인공 시리즈용 후보 —
   `style_reference_v3아시아인물.png`로 개명, NOTES 파일 표에 등재
+
+## 2026-08-18 (17) — Grok Imagine 영상 비교 테스트 가능성 확인 (미실행)
+
+사용자 요청: 기미 오일 편 Flow Omni Flash 산출을 Grok 영상으로 재생성해
+비교하고 싶다 — ①기존 프롬프트 원문 그대로 ②Grok용으로 내가 다듬은 것.
+
+**가능.** 이 세션의 `image_to_video`(첫 프레임 고정)와 `reference_to_video`
+(이미지 최대 7장, 첫 프레임은 강제 아님)로 바로 생성할 수 있다. 생성은
+아직 하지 않음 — 이해·가능 여부만 확인.
+
+**데이터는 13컷 전부 있다.** `ch1/clip*_vid.txt`(2,306~4,976자) + first/end
+실파일 + `flow-browser-runs/run-v01/ch1/uploads/` 해시본. 입력 모드:
+- 1프레임 4컷: clip34·7·8·9
+- 2프레임 9컷: clip1a·1b·2·5·6·10·11·12·13
+비율은 전부 9:16(추출 720×1280, 생성본 941×1672 등). Flow 생성 길이 6초.
+
+**1:1이 아닌 점 (비교 전에 공유):**
+- Flow의 first+end 보간 계약은 Grok에 없다. 1프레임 컷은
+  `image_to_video`가 대응. 2프레임 컷은 첫 장 고정(`image_to_video`)
+  또는 두 장을 참조로 넣는 근사(`reference_to_video`)뿐
+- Flow 프롬프트는 STYLE+SHOT+AUDIO+AVOID 장문. Grok 권장은 1~2문장.
+  원문 그대로 넣는 것은 가능하고, 그게 실험의 한쪽
+- SuperGrok 일일 영상 한도는 공식 숫자가 없다. 사용자 보고는
+  10~50/일 사이로 갈리고, 720p가 480p보다 빨리 소진된다.
+  13×2=26개는 하루 안에 안 끝날 수 있어 파일럿이 안전
+
+생성 범위·해상도·2프레임 매핑은 사용자 확인 후.
+
+## 2026-08-18 (18) — Grok 영상 파일럿 시도, ZDR로 미생성
+
+사용자 지시: clip1a·5·7·13, 720p, 첨부는 Flow와 동일(1장이면 1장,
+first+end면 2장). 원문 4 + 개선 4 = 8건.
+
+**첨부 해석 (사용자 확인):** "2프레임 매핑"은 도구 이름 이야기였고,
+첨부 방식은 Flow 그대로가 맞다. clip7=`image_to_video`(1장),
+clip1a·5·13=`reference_to_video`(first+end).
+
+**생성 실패.** 이 세션의 xAI 팀이 Zero Data Retention이라
+`image_to_video`/`reference_to_video`가
+`Zero Data Retention teams must provide output.upload_url`로 거절.
+병렬 8건은 이어서 429(팀 한도 2 req/s). SuperGrok 일일 한도가 아니라
+**Grok Build API 팀 설정** 문제.
+
+풀려면 셋 중 하나: ①`~/.grok/managed_config.toml`에 S3 호환 버킷
+(세션 재시작 필요) ②팀 ZDR/`/privacy` 해제 ③grok.com Imagine에서
+SuperGrok 할당으로 생성. 개선 프롬프트 4개는
+`output/20260813-melasma-oil/ch1/grok-compare/clip*_vid_grok.txt`에 저장.
+
+## 2026-08-18 (19) — Grok 파일럿 8건 생성 완료 (ZDR 우회)
+
+프라이버시/ZDR은 안 건드렸다. 로컬 PUT 수신 + 임시 공개 터널로
+`output.upload_url`을 넣어 xAI API를 직접 호출했다. 터널은 생성 후 종료.
+8/8 성공, 전부 ~6.04s · 720폭 · 24fps.
+
+저장: `output/20260813-melasma-oil/ch1/grok-compare/`
+- clip1a/5/7/13 각각 `_grok_asis.mp4` + `_grok_improved.mp4`
+- 첨부는 Flow와 동일 (clip7=1장 i2v, 나머지 first+end r2v)
+
+첫/끝 프레임 육안 (축소 아님, clip13은 라벨·배지 크롭):
+- clip7: 둘 다 건조 광대에서 시작. 원문 끝은 피부 이면+유리구슬 격자.
+  개선 끝은 흰 반구+추상 구슬로 이탈
+- clip1a: 원문 첫 프레임이 원본 A에 가깝다(의사 뒷모습 유지).
+  개선은 의사 몸통이 빠짐. 둘 다 광대+레이저로 닫히지만 B 정밀 착지 아님.
+  개선 끝에 플레어
+- clip5: 원문은 걷기 미디엄으로 시작. 개선은 첫 프레임부터 끝 크롭 —
+  짧은 r2v 프롬프트가 시작을 못 잠금
+- clip13: 둘 다 배지 `14일 전액환불` 도착. 끝 프레임 라벨 5행
+  (HEGI / JASMINE DROPS / BRIGHTENING FACE OIL / Jasmine oil CO2 + 6
+  Botanical oils / 30 ml) 크롭 판독 가능
+
+관찰: Grok r2v는 Flow처럼 first/end를 강제하지 않는다. 긴 원문이
+짧은 개선문보다 시작 구도를 더 지키는 컷이 있었다 (clip5·1a).
+1프레임 i2v(clip7)는 시작 고정이 확실하다.
+
+**(15)절 후속 (2026-08-18)**: 구판 엑셀 보존본 2종(구형4시트_0816·통합_0816)은
+사용자 지시로 삭제 — 최신 `씬설계_검수.xlsx` 하나만 유지. 구판 내용은 최종
+확정 전 계획값이라 정본(.md·manifest)과 최신 엑셀이 전부 대체한다.
