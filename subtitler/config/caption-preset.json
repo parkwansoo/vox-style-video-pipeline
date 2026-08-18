@@ -15,10 +15,18 @@
   "captionMaxWidthPct": 88,
   "headlineFontSizePct": 6.0,
   "headlineYPct": 18,
-  "headlineColor": "#fdfb25",
+  "headlineColor": "#FFFFFF",
+  "headlineHighlightColor": "#fdfb25",
   "headlineStrokeColor": "#000000",
   "headlineStrokeWidthPx": 6,
   "headlineScrimPct": 30,
-  "headlineScrimOpacity": 0.45
+  "headlineScrimOpacity": 0.45,
+  "labelFontSizePct": 3.13,
+  "labelYPct": 13,
+  "labelStrokeWidthPx": 3,
+  "labelBoxOpacity": 0.6,
+  "labelBoxRadiusPx": 15,
+  "labelPadXPx": 33,
+  "labelPadYPx": 18
  }
 }

@@ -53,18 +53,33 @@ function loadHighlights(captionsPath) {
 }
 
 // 헤드 카피는 편마다 문구·타이밍이 다르므로 런 폴더의 headline.json에서 읽는다
-// (highlights.json과 같은 방식). 파일이 없으면 빈 배열 — 헤드 없이 기존 그대로 렌더된다.
-// 형식: {"lines": ["기미의 핵심은", "레이저가 아닙니다"], "startMs": 0, "endMs": 3000}
-// 줄바꿈은 lines 배열이 결정한다. 화면 폭을 넘기면 잘리므로 한 줄 길이는
-// 폰트 메트릭으로 미리 확인한다 (720px 폭·안전여백 6%·6.0% 크기 기준 최대 8.25em).
+// (highlights.json과 같은 방식). 파일이 없으면 빈 값 — 헤드 없이 기존 그대로 렌더된다.
+// 형식:
+//   {"hook":  {"lines": ["기미의 핵심은", "레이저가 아닙니다"], "startMs": 0, "endMs": 3000},
+//    "label": {"text": "기미의 핵심은 레이저가 아닙니다", "startMs": 3000, "endMs": 0},
+//    "강조단어": ["레이저가"]}
+// 라벨 endMs 0 = 영상 끝까지. hook만 쓰거나 label만 써도 된다.
+// 줄바꿈은 hook.lines 배열이 결정한다. 화면 폭을 넘기면 잘리므로 한 줄 길이는
+// caption-font-metrics.json으로 미리 확인한다 (720폭·안전여백 6%에서 실효 634px:
+// 훅 6.0%=76.8px이면 상한 8.25em, 라벨 3.13%=40px이면 박스 패딩 포함 14.8em).
 function loadHeadline(captionsPath) {
+  const empty = {
+    lines: [], startMs: 0, endMs: 0,
+    labelText: "", labelStartMs: 0, labelEndMs: 0, 강조단어: [],
+  };
   const p = path.join(path.dirname(captionsPath), "headline.json");
-  if (!fs.existsSync(p)) return { lines: [], startMs: 0, endMs: 0 };
+  if (!fs.existsSync(p)) return empty;
   const h = JSON.parse(fs.readFileSync(p, "utf8"));
+  const hook = h.hook ?? h;   // 최상위 lines만 있는 옛 형식도 훅으로 읽는다
+  const label = h.label ?? {};
   return {
-    lines: Array.isArray(h.lines) ? h.lines : [],
-    startMs: Number.isFinite(h.startMs) ? h.startMs : 0,
-    endMs: Number.isFinite(h.endMs) ? h.endMs : 0,
+    lines: Array.isArray(hook.lines) ? hook.lines : [],
+    startMs: Number.isFinite(hook.startMs) ? hook.startMs : 0,
+    endMs: Number.isFinite(hook.endMs) ? hook.endMs : 0,
+    labelText: typeof label.text === "string" ? label.text : "",
+    labelStartMs: Number.isFinite(label.startMs) ? label.startMs : 0,
+    labelEndMs: Number.isFinite(label.endMs) ? label.endMs : 0,
+    강조단어: Array.isArray(h.강조단어) ? h.강조단어 : [],
   };
 }
 
@@ -85,16 +100,26 @@ export function buildInputProps({ src, captionsPath, presetName, asset }) {
     등장효과: p.entrance, 효과세기: p.effectStrength,
     자막높이: p.captionYPct, 안전여백: p.safeMarginPct,
     자막최대너비: p.captionMaxWidthPct,
-    // 헤드 카피 — headline.json이 없으면 문구가 빈 배열이라 레이어 자체가 안 붙는다.
+    // 헤드 카피 — headline.json이 없으면 훅·라벨 문구가 다 비어 레이어 자체가 안 붙는다.
+    // px 단위 값들은 자막 외곽선과 같은 규칙으로 높이 비례 보정한다 (프리셋 기준 1920px).
     헤드라인문구: hd.lines, 헤드라인시작ms: hd.startMs, 헤드라인종료ms: hd.endMs,
     헤드라인크기: p.headlineFontSizePct ?? 6.0,
-    헤드라인색: p.headlineColor ?? p.highlightColor1,
+    헤드라인색: p.headlineColor ?? "#FFFFFF",
+    헤드라인강조색: p.headlineHighlightColor ?? p.highlightColor1,
+    헤드라인강조단어: hd.강조단어,
     헤드라인외곽선색: p.headlineStrokeColor ?? p.strokeColor,
-    // 자막 외곽선과 같은 규칙으로 높이 비례 보정 (프리셋 기준 1920px)
     헤드라인외곽선두께: Math.max(1, Math.round((p.headlineStrokeWidthPx ?? 6) * video.height / 1920)),
     헤드라인높이: p.headlineYPct ?? 18,
     스크림높이: p.headlineScrimPct ?? 30,
     스크림농도: p.headlineScrimOpacity ?? 0.45,
+    라벨문구: hd.labelText, 라벨시작ms: hd.labelStartMs, 라벨종료ms: hd.labelEndMs,
+    라벨크기: p.labelFontSizePct ?? 3.13,
+    라벨높이: p.labelYPct ?? 13,
+    라벨외곽선두께: Math.max(1, Math.round((p.labelStrokeWidthPx ?? 3) * video.height / 1920)),
+    라벨박스농도: p.labelBoxOpacity ?? 0.6,
+    라벨박스라운드: Math.max(1, Math.round((p.labelBoxRadiusPx ?? 15) * video.height / 1920)),
+    라벨여백가로: Math.max(1, Math.round((p.labelPadXPx ?? 33) * video.height / 1920)),
+    라벨여백세로: Math.max(1, Math.round((p.labelPadYPx ?? 18) * video.height / 1920)),
     자막목록: captions,
     장면목록: [{ startMs: 0, endMs: video.durationMs, type: "video", asset, volume: 1 }],
   };

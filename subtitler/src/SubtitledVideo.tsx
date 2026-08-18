@@ -17,21 +17,33 @@ export const SubtitledVideo: React.FC<SubtitledVideoProps> = (props) => {
           style={{ width: "100%", height: "100%", objectFit: "cover" }}
         />
       ))}
-      {props.헤드라인문구.length > 0 && (
+      {(props.헤드라인문구.length > 0 || props.라벨문구.length > 0) && (
         <Headline
-          lines={props.헤드라인문구}
-          startMs={props.헤드라인시작ms}
-          endMs={props.헤드라인종료ms}
-          fontKey={props.폰트}
-          fontSizePct={props.헤드라인크기}
-          fontWeight={props.글자굵기}
-          color={props.헤드라인색}
-          strokeColor={props.헤드라인외곽선색}
-          strokeWidthPx={props.헤드라인외곽선두께}
-          yPct={props.헤드라인높이}
-          safeMarginPct={props.안전여백}
+          hookLines={props.헤드라인문구}
+          hookStartMs={props.헤드라인시작ms}
+          hookEndMs={props.헤드라인종료ms}
+          hookFontSizePct={props.헤드라인크기}
+          hookYPct={props.헤드라인높이}
           scrimPct={props.스크림높이}
           scrimOpacity={props.스크림농도}
+          labelText={props.라벨문구}
+          labelStartMs={props.라벨시작ms}
+          labelEndMs={props.라벨종료ms}
+          labelFontSizePct={props.라벨크기}
+          labelYPct={props.라벨높이}
+          boxOpacity={props.라벨박스농도}
+          boxRadiusPx={props.라벨박스라운드}
+          padXPx={props.라벨여백가로}
+          padYPx={props.라벨여백세로}
+          labelStrokeWidthPx={props.라벨외곽선두께}
+          fontKey={props.폰트}
+          fontWeight={props.글자굵기}
+          color={props.헤드라인색}
+          highlightColor={props.헤드라인강조색}
+          highlightWords={props.헤드라인강조단어}
+          strokeColor={props.헤드라인외곽선색}
+          strokeWidthPx={props.헤드라인외곽선두께}
+          safeMarginPct={props.안전여백}
         />
       )}
       <Captions
