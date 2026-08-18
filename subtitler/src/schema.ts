@@ -41,6 +41,19 @@ export const subtitledVideoSchema = z.object({
   자막높이: z.number(),
   안전여백: z.number(),
   자막최대너비: z.number().min(1).max(100),
+  // ── 헤드 카피(상단 훅) — 20번 스키마에 없는 우리 확장이다. 20번 렌더러로
+  // 갈아타면 zod가 이 키들을 조용히 제거해 자막만 렌더된다(오류가 아니라 기능 손실).
+  // 문구·타이밍은 런 폴더 headline.json에서 오고, 나머지는 프리셋 값이다.
+  헤드라인문구: z.array(z.string()),
+  헤드라인시작ms: z.number(),
+  헤드라인종료ms: z.number(),
+  헤드라인크기: z.number(),
+  헤드라인색: zColor(),
+  헤드라인외곽선색: zColor(),
+  헤드라인외곽선두께: z.number(),
+  헤드라인높이: z.number(),
+  스크림높이: z.number(),
+  스크림농도: z.number(),
   자막목록: z.array(captionSchema),
   장면목록: z.array(sceneSchema),
 });

@@ -52,11 +52,28 @@ function loadHighlights(captionsPath) {
   };
 }
 
+// 헤드 카피는 편마다 문구·타이밍이 다르므로 런 폴더의 headline.json에서 읽는다
+// (highlights.json과 같은 방식). 파일이 없으면 빈 배열 — 헤드 없이 기존 그대로 렌더된다.
+// 형식: {"lines": ["기미의 핵심은", "레이저가 아닙니다"], "startMs": 0, "endMs": 3000}
+// 줄바꿈은 lines 배열이 결정한다. 화면 폭을 넘기면 잘리므로 한 줄 길이는
+// 폰트 메트릭으로 미리 확인한다 (720px 폭·안전여백 6%·6.0% 크기 기준 최대 8.25em).
+function loadHeadline(captionsPath) {
+  const p = path.join(path.dirname(captionsPath), "headline.json");
+  if (!fs.existsSync(p)) return { lines: [], startMs: 0, endMs: 0 };
+  const h = JSON.parse(fs.readFileSync(p, "utf8"));
+  return {
+    lines: Array.isArray(h.lines) ? h.lines : [],
+    startMs: Number.isFinite(h.startMs) ? h.startMs : 0,
+    endMs: Number.isFinite(h.endMs) ? h.endMs : 0,
+  };
+}
+
 export function buildInputProps({ src, captionsPath, presetName, asset }) {
   const video = probeVideo(src);
   const captions = JSON.parse(fs.readFileSync(captionsPath, "utf8"));
   const p = loadPreset(presetName);
   const hl = loadHighlights(captionsPath);
+  const hd = loadHeadline(captionsPath);
   const inputProps = {
     가로: video.width, 세로: video.height, fps: video.fps, 영상길이ms: video.durationMs,
     폰트: p.fontKey, 글자굵기: p.fontWeight, 글자크기: p.fontSizePct,
@@ -68,6 +85,16 @@ export function buildInputProps({ src, captionsPath, presetName, asset }) {
     등장효과: p.entrance, 효과세기: p.effectStrength,
     자막높이: p.captionYPct, 안전여백: p.safeMarginPct,
     자막최대너비: p.captionMaxWidthPct,
+    // 헤드 카피 — headline.json이 없으면 문구가 빈 배열이라 레이어 자체가 안 붙는다.
+    헤드라인문구: hd.lines, 헤드라인시작ms: hd.startMs, 헤드라인종료ms: hd.endMs,
+    헤드라인크기: p.headlineFontSizePct ?? 6.0,
+    헤드라인색: p.headlineColor ?? p.highlightColor1,
+    헤드라인외곽선색: p.headlineStrokeColor ?? p.strokeColor,
+    // 자막 외곽선과 같은 규칙으로 높이 비례 보정 (프리셋 기준 1920px)
+    헤드라인외곽선두께: Math.max(1, Math.round((p.headlineStrokeWidthPx ?? 6) * video.height / 1920)),
+    헤드라인높이: p.headlineYPct ?? 18,
+    스크림높이: p.headlineScrimPct ?? 30,
+    스크림농도: p.headlineScrimOpacity ?? 0.45,
     자막목록: captions,
     장면목록: [{ startMs: 0, endMs: video.durationMs, type: "video", asset, volume: 1 }],
   };

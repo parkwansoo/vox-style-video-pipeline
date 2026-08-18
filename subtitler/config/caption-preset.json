@@ -12,6 +12,13 @@
   "effectStrength": 1,
   "captionYPct": 65,
   "safeMarginPct": 6,
-  "captionMaxWidthPct": 88
+  "captionMaxWidthPct": 88,
+  "headlineFontSizePct": 6.0,
+  "headlineYPct": 18,
+  "headlineColor": "#fdfb25",
+  "headlineStrokeColor": "#000000",
+  "headlineStrokeWidthPx": 6,
+  "headlineScrimPct": 30,
+  "headlineScrimOpacity": 0.45
  }
 }

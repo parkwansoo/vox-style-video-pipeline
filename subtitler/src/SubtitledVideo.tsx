@@ -1,6 +1,7 @@
 import React from "react";
 import { AbsoluteFill, OffthreadVideo, staticFile } from "remotion";
 import { Captions } from "./Captions";
+import { Headline } from "./Headline";
 import type { SubtitledVideoProps } from "./schema";
 
 // 완성 영상(bg)을 전체 화면으로 깔고 자막만 얹는다 — 20번 render-video.mjs의
@@ -16,6 +17,23 @@ export const SubtitledVideo: React.FC<SubtitledVideoProps> = (props) => {
           style={{ width: "100%", height: "100%", objectFit: "cover" }}
         />
       ))}
+      {props.헤드라인문구.length > 0 && (
+        <Headline
+          lines={props.헤드라인문구}
+          startMs={props.헤드라인시작ms}
+          endMs={props.헤드라인종료ms}
+          fontKey={props.폰트}
+          fontSizePct={props.헤드라인크기}
+          fontWeight={props.글자굵기}
+          color={props.헤드라인색}
+          strokeColor={props.헤드라인외곽선색}
+          strokeWidthPx={props.헤드라인외곽선두께}
+          yPct={props.헤드라인높이}
+          safeMarginPct={props.안전여백}
+          scrimPct={props.스크림높이}
+          scrimOpacity={props.스크림농도}
+        />
+      )}
       <Captions
         captions={props.자막목록}
         fontKey={props.폰트}
