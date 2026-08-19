@@ -2,6 +2,9 @@
 
 ## 대기
 
+- [ ] 2026-08-19 **사전 패딩·크롭 복원 자동화** — 4:5·1:1 편의 Flow 영상화가 수동 3컷(파일럿 clip1b·4b)으로 검증됨. 본생산에서 컷 수가 많아지면 prepare_flow_jobs.py에 `--pad 9:16` 옵션(패드색 자동 실측 포함)과 회수 후 일괄 크롭 스크립트(`crop=720:894:0:193`)를 만든다. 절차 원문은 SKILL 6단계 "사전 패딩" 절 — scripts/prepare_flow_jobs.py
+- [ ] 2026-08-19 **[관찰 대기] Omni Flash 인물 미화 성향 (표본 1)** — clip4b에서 EXACT final frame + AVOID("brown patches disappearing")를 걸고도 end의 기미가 옅어지고 찌푸림이 완화됨(뺨 평균 밝기 98.9→106.9). 본생산 인물 컷에서 재확인되면 pipeline-rules.md로 승격하고 방어책(종점 상태 강조 문구 또는 조립 시 실이미지 종점 삽입)을 설계 — output/20260818-faceoil-3signs/ch1/plan.md 비율 전환 절
+
 - [ ] 2026-08-16 **캐릭터 시트 표정 과장** — 시트 후보1 검수에서 사용자 지적: "표정만 애니메이션에 맞게 더 과장되었으면". 감정 패널(실망·근심·옅은 미소)이 실사 연기처럼 밋밋하다. 이번 편은 **후순위로 넘김** — 인물 컷 생성 후 표정 전달이 약하면 시트부터 재생성한다. 과장 수위는 H 컷과 같은 문제(v1 약함↔v2 과함 사이)라 함께 판단 — `output/20260813-melasma-oil/ch1/prompts/sheet_img.txt`, `.claude/skills/character-sheet/SKILL.md` 4단계
 
 - [ ] 2026-08-01 클립 자체 오디오 볼륨(0.2) 청감 튜닝 — 첫 실전작에서 효과음이 잘 들리는지 확인 필요 — assemble.py
