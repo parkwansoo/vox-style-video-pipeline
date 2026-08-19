@@ -2,6 +2,7 @@
 
 ## 대기
 
+- [ ] 2026-08-19 **씬 4~19 자가 심사 실행 — 사용자 승인 대기** — 신규 심사 체계(직역 검사 체크항목 + 자가 심사 섹션 + 장치 지도 + [실험] 서브에이전트 심사)로 3증상 편 씬 4~19의 개선 후보를 제안한다. 승인 후 착수하며, 서브에이전트 레이어는 이 1회 실험 결과로 유지/제거를 결정한다 — .claude/skills/vox-video/references/scene-design.md 관찰 중, output/20260818-faceoil-3signs/ch1/scenes/
 - [ ] 2026-08-19 **사전 패딩·크롭 복원 자동화** — 4:5·1:1 편의 Flow 영상화가 수동 3컷(파일럿 clip1b·4b)으로 검증됨. 본생산에서 컷 수가 많아지면 prepare_flow_jobs.py에 `--pad 9:16` 옵션(패드색 자동 실측 포함)과 회수 후 일괄 크롭 스크립트(`crop=720:894:0:193`)를 만든다. 절차 원문은 SKILL 6단계 "사전 패딩" 절 — scripts/prepare_flow_jobs.py
 - [ ] 2026-08-19 **[관찰 대기] Omni Flash 인물 미화 성향 (표본 1)** — clip4b에서 EXACT final frame + AVOID("brown patches disappearing")를 걸고도 end의 기미가 옅어지고 찌푸림이 완화됨(뺨 평균 밝기 98.9→106.9). 본생산 인물 컷에서 재확인되면 pipeline-rules.md로 승격하고 방어책(종점 상태 강조 문구 또는 조립 시 실이미지 종점 삽입)을 설계 — output/20260818-faceoil-3signs/ch1/plan.md 비율 전환 절
 
