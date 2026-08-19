@@ -18,7 +18,8 @@ from pathlib import Path
 
 # 세로 스타일(9:16 숏폼)도 지원한다. 기본은 16:9이므로 옵션을 주지 않으면
 # 기존 호출과 완전히 동일하게 동작한다.
-ORIENTATION = {"16:9": "landscape", "9:16": "vertical portrait"}
+ORIENTATION = {"16:9": "landscape", "9:16": "vertical portrait",
+               "4:5": "vertical portrait", "1:1": "square"}
 
 HEADER = """Use your built-in native image generation tool (NOT the imagegen skill, NOT any external API or API key). Generate ONE {aspect} {orientation} image and save the image file as {name} in the current working directory. Do nothing else — no extra files, no commentary beyond confirming the save."""
 
@@ -203,8 +204,11 @@ def main():
     p.add_argument("--revise", metavar="PATH",
                    help="이전 렌더본. 구도를 유지한 채 프롬프트가 지시한 부분만 고쳐 다시 그린다")
     p.add_argument("--out", required=True)
-    p.add_argument("--aspect", default="16:9", choices=["16:9", "9:16"],
-                   help="세로 스타일이면 9:16 (기본 16:9)")
+    p.add_argument("--aspect", default="16:9", choices=["16:9", "9:16", "4:5", "1:1"],
+                   help="편 시작(1단계 사양 ④)에 확정한 산출 비율 (기본 16:9). "
+                        "4:5는 2026-08-19 페이스오일 3증상 편, 1:1은 같은 날 옵션으로 "
+                        "도입 — gemini 백엔드는 API가 비율을 직접 받고, codex 경로는 "
+                        "헤더 문구로 지정")
     # 실측(stdin 수정 후): 한 장에 약 60초. 420초면 7배 여유다.
     p.add_argument("--backend", default="codex", choices=["codex", "gemini"],
                    help="codex(ChatGPT 구독 OAuth, 기본) 또는 gemini(GEMINI_API_KEY "
