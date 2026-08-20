@@ -30,31 +30,28 @@
   "labelPadYPx": 18,
   "ratioOverrides": {
    "4:5": {
-    "fontSizePct": 5.88,
+    "fontSizePct": 5.4,
     "captionYPct": 65,
     "safeMarginPct": 6,
     "captionMaxWidthPct": 88,
-    "headlineFontSizePct": 7.44,
-    "headlineYPct": 18,
-    "labelFontSizePct": 3.88
+    "headlineFontSizePct": 6.6,
+    "labelFontSizePct": 3.57
    },
    "1:1": {
-    "fontSizePct": 7.11,
+    "fontSizePct": 6.3,
     "captionYPct": 66,
     "safeMarginPct": 7,
     "captionMaxWidthPct": 82,
-    "headlineFontSizePct": 9.0,
-    "headlineYPct": 20,
-    "labelFontSizePct": 4.7
+    "headlineFontSizePct": 7.3,
+    "labelFontSizePct": 4.16
    },
    "16:9": {
-    "fontSizePct": 7.58,
+    "fontSizePct": 6.7,
     "captionYPct": 68,
     "safeMarginPct": 6,
     "captionMaxWidthPct": 68,
-    "headlineFontSizePct": 9.6,
-    "headlineYPct": 20,
-    "labelFontSizePct": 5.01
+    "headlineFontSizePct": 7.7,
+    "labelFontSizePct": 4.42
    }
   }
  }
