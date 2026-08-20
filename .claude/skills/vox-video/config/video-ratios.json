@@ -1,0 +1,25 @@
+{
+ "_주석": [
+  "출력 비율 정본. 9단계 export_ratios.py가 읽는다.",
+  "20번 숏츠자동화 config/video-ratios.json과 같은 형식이되, framing이 전부 contain-blur다 —",
+  "이 프로젝트는 원본 프레임을 한 픽셀도 잘라내지 않는 것이 요구사항이라 cover를 쓰지 않는다.",
+  "blurSigma/bgZoom/bgBrightness는 20번 remotion/Background.tsx의 contain-blur 실측값",
+  "(blur(40px) brightness(0.72) scale(1.08))을 옮긴 것이다.",
+  "px 값은 캔버스 높이 1920 기준이며 blurRefHeight로 비례 보정된다 (props.mjs와 같은 규칙)."
+ ],
+ "defaultRatio": "9:16",
+ "framing": "contain-blur",
+ "background": {
+  "blurSigma": 40,
+  "blurRefHeight": 1920,
+  "blurDownscale": 4,
+  "bgZoom": 1.08,
+  "bgBrightness": 0.72
+ },
+ "ratios": {
+  "9:16": {"width": 1080, "height": 1920, "slug": "9x16", "purpose": "쇼츠·릴스·틱톡"},
+  "4:5":  {"width": 1080, "height": 1350, "slug": "4x5",  "purpose": "인스타 피드"},
+  "1:1":  {"width": 1080, "height": 1080, "slug": "1x1",  "purpose": "정사각형 피드"},
+  "16:9": {"width": 1920, "height": 1080, "slug": "16x9", "purpose": "유튜브·가로 영상"}
+ }
+}
