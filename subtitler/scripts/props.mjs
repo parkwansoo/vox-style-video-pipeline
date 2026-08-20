@@ -35,6 +35,53 @@ export function loadPreset(presetName) {
   return p;
 }
 
+// 비율별 override — 20번 숏츠자동화 scripts/lib/video-config.mjs의
+// resolvePresetForRatio를 옮긴 것이다. 같은 %를 넓은 캔버스에 그대로 쓰면
+// 화면 폭 대비 글자가 작아진다(16:9는 9:16의 0.32배). 9:16에는 override를
+// 두지 않아 기존 경로(7.5단계 자막, 720x1280)가 한 값도 바뀌지 않는다.
+const RATIO_OVERRIDE_FIELDS = new Set([
+  "fontSizePct", "captionYPct", "safeMarginPct", "captionMaxWidthPct",
+  "headlineFontSizePct", "headlineYPct", "labelFontSizePct", "labelYPct",
+]);
+const KNOWN_RATIOS = { "9:16": 1080 / 1920, "4:5": 1080 / 1350, "1:1": 1, "16:9": 1920 / 1080 };
+
+// 해상도에서 비율을 판별한다 (720x1280도 9:16으로 잡힌다). 어느 것과도 2%
+// 안에서 맞지 않으면 null — override 없이 기본 프리셋 그대로 간다.
+export function detectRatio(width, height) {
+  const a = width / height;
+  let best = null;
+  for (const [key, v] of Object.entries(KNOWN_RATIOS)) {
+    const err = Math.abs(a - v) / v;
+    if (err <= 0.02 && (best === null || err < best.err)) best = { key, err };
+  }
+  return best && best.key;
+}
+
+export function resolvePresetForRatio(preset, width, height) {
+  const { ratioOverrides, ...base } = preset;
+  if (ratioOverrides === undefined) return { preset: base, ratio: detectRatio(width, height) };
+  if (!ratioOverrides || typeof ratioOverrides !== "object" || Array.isArray(ratioOverrides)) {
+    throw new Error("ratioOverrides는 객체여야 합니다");
+  }
+  for (const [key, ov] of Object.entries(ratioOverrides)) {
+    if (!(key in KNOWN_RATIOS)) throw new Error(`알 수 없는 ratioOverrides 키: ${key}`);
+    if (!ov || typeof ov !== "object" || Array.isArray(ov)) {
+      throw new Error(`ratioOverrides.${key}는 객체여야 합니다`);
+    }
+    for (const [f, v] of Object.entries(ov)) {
+      if (!RATIO_OVERRIDE_FIELDS.has(f)) throw new Error(`알 수 없는 ratioOverrides 필드: ${f}`);
+      if (!Number.isFinite(v)) throw new Error(`ratioOverrides.${key}.${f}는 숫자여야 합니다`);
+      if (f.toLowerCase().includes("fontsizepct")) {
+        if (v <= 0) throw new Error(`ratioOverrides.${key}.${f}는 0보다 커야 합니다`);
+      } else if (v < 0 || v > 100) {
+        throw new Error(`ratioOverrides.${key}.${f}는 0~100 범위여야 합니다`);
+      }
+    }
+  }
+  const ratio = detectRatio(width, height);
+  return { preset: ratio ? { ...base, ...(ratioOverrides[ratio] || {}) } : base, ratio };
+}
+
 // 모든 prop을 완전 명시로 만든다 — inputProps에 없는 키는 defaultProps로
 // 채워지는데, 그 잔여값이 자막 폭을 조인 실사고가 있었다(2026-08-04).
 // 강조 단어는 편마다 다르므로 런 폴더의 highlights.json에서 읽는다.
@@ -86,7 +133,7 @@ function loadHeadline(captionsPath) {
 export function buildInputProps({ src, captionsPath, presetName, asset }) {
   const video = probeVideo(src);
   const captions = JSON.parse(fs.readFileSync(captionsPath, "utf8"));
-  const p = loadPreset(presetName);
+  const { preset: p, ratio } = resolvePresetForRatio(loadPreset(presetName), video.width, video.height);
   const hl = loadHighlights(captionsPath);
   const hd = loadHeadline(captionsPath);
   const inputProps = {
@@ -123,5 +170,5 @@ export function buildInputProps({ src, captionsPath, presetName, asset }) {
     자막목록: captions,
     장면목록: [{ startMs: 0, endMs: video.durationMs, type: "video", asset, volume: 1 }],
   };
-  return { inputProps, video, captions };
+  return { inputProps, video, captions, ratio };
 }

@@ -33,7 +33,7 @@ const crf = Number(arg("--crf", 14));
 const codec = arg("--codec", "h264");
 
 // ①② 입력 영상 실측 + props 구성 (prepare-studio.mjs와 공유 — props.mjs)
-const { inputProps, video, captions } = buildInputProps({
+const { inputProps, video, captions, ratio } = buildInputProps({
   src, captionsPath, presetName, asset: "bg.mp4",
 });
 const { width, height, fps, durationMs } = video;
@@ -49,7 +49,7 @@ for (const f of fs.readdirSync(path.join(SUBTITLER, "public", "_fonts"))) {
 
 try {
   // ④ 번들 → 컴포지션 → 렌더
-  console.log(`번들 준비… (${width}x${height} ${fps}fps, ${captions.length}자막, crf ${crf})`);
+  console.log(`번들 준비… (${width}x${height} ${fps}fps, 비율 ${ratio ?? "미상"}, 글자 ${inputProps.글자크기}%, ${captions.length}자막, crf ${crf})`);
   const serveUrl = await bundle({
     entryPoint: path.join(SUBTITLER, "src", "index.ts"),
     publicDir: staging,
@@ -88,6 +88,7 @@ try {
   if (v.width !== width || v.height !== height) problems.push(`해상도 ${v.width}x${v.height} ≠ ${width}x${height}`);
   console.log(JSON.stringify({
     out: outPath, width, height, fps, crf, codec,
+    ratio, font_pct: inputProps.글자크기,
     video_ms: Math.round(vDur),
     audio_tail_ms: audio ? Math.round(parseFloat(audio.duration) * 1000 - vDur) : null,
     captions: captions.length,

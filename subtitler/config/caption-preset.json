@@ -27,6 +27,35 @@
   "labelBoxOpacity": 0.6,
   "labelBoxRadiusPx": 15,
   "labelPadXPx": 33,
-  "labelPadYPx": 18
+  "labelPadYPx": 18,
+  "ratioOverrides": {
+   "4:5": {
+    "fontSizePct": 5.88,
+    "captionYPct": 65,
+    "safeMarginPct": 6,
+    "captionMaxWidthPct": 88,
+    "headlineFontSizePct": 7.44,
+    "headlineYPct": 18,
+    "labelFontSizePct": 3.88
+   },
+   "1:1": {
+    "fontSizePct": 7.11,
+    "captionYPct": 66,
+    "safeMarginPct": 7,
+    "captionMaxWidthPct": 82,
+    "headlineFontSizePct": 9.0,
+    "headlineYPct": 20,
+    "labelFontSizePct": 4.7
+   },
+   "16:9": {
+    "fontSizePct": 7.58,
+    "captionYPct": 68,
+    "safeMarginPct": 6,
+    "captionMaxWidthPct": 68,
+    "headlineFontSizePct": 9.6,
+    "headlineYPct": 20,
+    "labelFontSizePct": 5.01
+   }
+  }
  }
 }
