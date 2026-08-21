@@ -4,6 +4,9 @@
 
 파이프라인 9단계. 1~8단계 산출물은 읽기만 하고 고치지 않는다.
 
+  ⓪ 글자 기하  자막·훅·라벨이 캔버스에서 잘리거나 두 줄로 터지지 않는지
+               렌더 전에 계산한다. 고장은 실패, 취향은 경고(--strict로 승격).
+               --check-only로 렌더 없이 크기만 튜닝할 수 있다.
   ① 정렬 검증  자막 없는 영상(--video)과 BGM 완성본(--audio)이 같은 타임라인인지
                여러 지점 PSNR로 대조한다. 어긋나면 렌더 전에 실패한다.
   ② 패딩       비율별 캔버스에 원본 전체를 contain으로 얹고 남는 공간은
@@ -39,6 +42,8 @@ SKILL = HERE.parent
 PROJECT = SKILL.parent.parent.parent
 CONFIG = SKILL / "config" / "video-ratios.json"
 RENDER_MJS = PROJECT / "subtitler" / "scripts" / "render.mjs"
+METRICS = HERE / "caption-font-metrics.json"
+PROPS_MJS = PROJECT / "subtitler" / "scripts" / "props.mjs"
 
 
 # ── 공용 ────────────────────────────────────────────────────────────────────
@@ -213,6 +218,132 @@ def verify_output(out: Path, src_video: Path, cw: int, ch: int, fw: int, fh: int
             "no_crop_psnr": checks, "problems": problems}
 
 
+# ── ⓪ 글자 기하 프리플라이트 ────────────────────────────────────────────────
+# 렌더 한 벌이 1분 이상이라, 손으로 계산하던 것을 앞으로 당겨 몇 초에 잡는다.
+# **고장은 막고 취향은 막지 않는다** — 글자 크기는 편마다 바뀌는 값이라
+# 하드 실패는 "무슨 값을 넣든 화면이 깨지는 것"에만 건다.
+#   실패: 자막이 두 줄로 터짐 · 훅/라벨이 가로로 잘림 · 훅 블록이 상하로 잘림
+#   경고: 훅이 원본 영상을 덮음 · 헤드가 자막보다 작음 · override 없음
+# 경고를 실패로 올리려면 --strict.
+
+def em_width(text: str, m: dict) -> float:
+    """폰트 실측 폭을 em으로. make_captions.mjs:112와 같은 식."""
+    u = 0
+    for ch in text:
+        u += m["space"] if ch == " " else m["chars"].get(ch, m["hangul"])
+    return u / m["unitsPerEm"]
+
+
+def resolve_presets(preset_name: str, sizes) -> list:
+    """비율별 병합 프리셋을 props.mjs에서 받아온다.
+
+    병합 로직을 파이썬에 복사하면 두 정의가 갈라진다 (20번에서 실제로 난 사고 —
+    LAYOUT_RATIOS 하드코딩 평행 정의). props.mjs를 단일 정본으로 둔다.
+    """
+    script = (
+        f"import {{ loadPreset, resolvePresetForRatio }} from {json.dumps(PROPS_MJS.as_uri())};\n"
+        f"const raw = loadPreset({json.dumps(preset_name)});\n"
+        f"const out = [];\n"
+        f"for (const [w, h] of {json.dumps(list(sizes))}) {{\n"
+        f"  const {{ preset, ratio }} = resolvePresetForRatio(raw, w, h);\n"
+        f"  out.push({{ ratio, preset,\n"
+        f"    hasOverride: Boolean(raw.ratioOverrides && ratio && raw.ratioOverrides[ratio]) }});\n"
+        f"}}\n"
+        f"console.log(JSON.stringify(out));\n"
+    )
+    r = subprocess.run(["node", "--input-type=module", "-e", script], capture_output=True, text=True)
+    if r.returncode != 0:
+        sys.stderr.write(r.stdout); sys.stderr.write(r.stderr)
+        die("프리셋 해석 실패 (props.mjs)")
+    return json.loads(r.stdout)
+
+
+def preflight(run_dir, want, cfg, preset_name, src, hook_cover_max, strict):
+    """렌더 전에 자막·헤드·라벨의 기하를 계산해 깨질 조합을 걸러낸다."""
+    caps_p, head_p = run_dir / "captions.json", run_dir / "headline.json"
+    metrics_all = json.loads(METRICS.read_text(encoding="utf-8"))
+    caps = json.loads(caps_p.read_text(encoding="utf-8"))
+    head = json.loads(head_p.read_text(encoding="utf-8")) if head_p.exists() else {}
+    hook_lines = (head.get("hook") or {}).get("lines") or []
+    label_text = (head.get("label") or {}).get("text") or ""
+
+    sizes = [(cfg["ratios"][r]["width"], cfg["ratios"][r]["height"]) for r in want]
+    resolved = resolve_presets(preset_name, sizes)
+
+    fails, warns, rows = [], [], []
+    for r, (W, H), res in zip(want, sizes, resolved):
+        pr = res["preset"]
+        m = metrics_all.get(pr["fontKey"])
+        if not m:
+            die(f"폰트 메트릭 없음: {pr['fontKey']} — measure_font_metrics.py를 실행하세요")
+        cap_em = max((em_width(c["text"], m) for c in caps), default=0.0)
+        hook_em = max((em_width(t, m) for t in hook_lines), default=0.0)
+        lab_em = em_width(label_text, m) if label_text else 0.0
+
+        fw, fh = fit_size(src["width"], src["height"], W, H)
+        safe_w = W * (100 - 2 * pr["safeMarginPct"]) / 100
+        safe_t = pr["safeMarginPct"] / 100 * H
+
+        # 자막 — 예산은 make_captions.mjs:52-55와 같은 식
+        cap_px = pr["fontSizePct"] / 100 * H
+        cap_avail = pr["captionMaxWidthPct"] / 100 * W - W * 0.0185
+        budget = cap_avail / cap_px if cap_px else 0.0
+        if cap_em and budget < cap_em:
+            fails.append(f"{r}: 자막 한 줄 예산 {budget:.2f}em < 최장 {cap_em:.2f}em — 화면에서 두 줄로 터진다")
+
+        # 훅 — Headline.tsx는 top:% + translateY(-50%), lineHeight 1.2
+        hook_px = pr["headlineFontSizePct"] / 100 * H
+        hook_w = hook_em * hook_px
+        block = len(hook_lines) * hook_px * 1.2
+        top = pr["headlineYPct"] / 100 * H - block / 2
+        cover = hook_w / fw if fw else 0.0
+        if hook_lines:
+            if hook_w > safe_w:
+                fails.append(f"{r}: 훅 최장줄 {hook_w:.0f}px > 가용 {safe_w:.0f}px — 가로로 잘린다")
+            if top < safe_t:
+                fails.append(f"{r}: 훅 상단 {top:.0f}px < 안전선 {safe_t:.0f}px — 윗줄이 잘린다")
+            if top + block > H - safe_t:
+                fails.append(f"{r}: 훅 하단 {top + block:.0f}px > {H - safe_t:.0f}px — 아랫줄이 잘린다")
+            if cover > hook_cover_max:
+                warns.append(f"{r}: 훅이 원본 영상 폭의 {cover*100:.0f}% (기준 {hook_cover_max*100:.0f}%) — 훅 구간을 가린다")
+            if pr["headlineFontSizePct"] <= pr["fontSizePct"]:
+                warns.append(f"{r}: 헤드 {pr['headlineFontSizePct']}% ≤ 자막 {pr['fontSizePct']}% — 위계가 뒤집힌다")
+
+        # 라벨 — 박스 좌우 패딩 포함 (props.mjs 라벨여백가로)
+        lab_px = pr["labelFontSizePct"] / 100 * H
+        lab_w = lab_em * lab_px + 2 * round(33 * H / 1920) if lab_em else 0.0
+        if lab_em:
+            if lab_w > safe_w:
+                fails.append(f"{r}: 라벨 {lab_w:.0f}px > 가용 {safe_w:.0f}px — 가로로 잘린다")
+            lab_top = pr["labelYPct"] / 100 * H - lab_px * 1.2 / 2
+            if lab_top < safe_t:
+                fails.append(f"{r}: 라벨 상단 {lab_top:.0f}px < 안전선 {safe_t:.0f}px — 잘린다")
+
+        if res["ratio"] is None:
+            warns.append(f"{r}: {W}x{H}가 알려진 비율과 안 맞아 기본 프리셋으로 간다")
+        elif not res["hasOverride"] and res["ratio"] != cfg.get("defaultRatio"):
+            warns.append(f"{r}: ratioOverrides에 항목이 없어 9:16 크기 그대로 간다 (화면 폭 대비 작아진다)")
+
+        rows.append((r, f"{W}x{H}", cap_px, budget, cap_em, hook_px, cover, top, safe_t,
+                     pr["headlineFontSizePct"] / pr["fontSizePct"]))
+
+    print(f"   최장 자막 {cap_em:.2f}em · 훅 최장줄 {hook_em:.2f}em · 라벨 {lab_em:.2f}em")
+    print("   비율   캔버스      자막px  예산em  훅px  훅폭/영상  훅상단/안전선  헤드/자막")
+    for (r, wh, cpx, bud, cem, hpx, cov, top, st, ratio_hc) in rows:
+        print(f"   {r:6s} {wh:11s} {cpx:6.0f} {bud:7.2f} {hpx:5.0f} "
+              f"{cov*100:8.0f}% {top:8.0f}/{st:<5.0f} {ratio_hc:9.2f}")
+    for w in warns: print(f"   [경고] {w}")
+    if fails:
+        for f in fails: print(f"   [실패] {f}", file=sys.stderr)
+        die("글자 기하가 깨진다 — 위 항목을 고치고 다시 실행하세요 "
+            "(caption-preset.json의 ratioOverrides)")
+    if warns and strict:
+        die("--strict: 경고를 실패로 처리합니다")
+    if not warns:
+        print("   → 전부 통과")
+    return rows
+
+
 # ── main ────────────────────────────────────────────────────────────────────
 def main() -> int:
     cfg = json.loads(CONFIG.read_text(encoding="utf-8"))
@@ -233,6 +364,11 @@ def main() -> int:
     p.add_argument("--align-points", default="3,8,18,25,32,38")
     p.add_argument("--skip-align-check", action="store_true",
                    help="정렬 검증 생략 (어긋난 소스를 알면서 강행할 때만)")
+    p.add_argument("--check-only", action="store_true",
+                   help="글자 기하만 계산하고 끝낸다 (렌더 없음 — 크기 튜닝용)")
+    p.add_argument("--strict", action="store_true", help="경고도 실패로 처리")
+    p.add_argument("--hook-cover-max", type=float, default=1.10,
+                   help="훅 가로폭 ÷ 원본 영상 폭 경고 기준 (기본 1.10, 9:16 실측 0.85)")
     a = p.parse_args()
 
     run_dir = Path(a.run).resolve()
@@ -270,12 +406,22 @@ def main() -> int:
     print(f"출력   fps={fps:g}  crf={a.crf}  codec={a.codec}  "
           f"자막={'끔' if a.no_captions else a.preset}  비율={want}")
 
+    # ⓪ 글자 기하 — 렌더보다 먼저, 가장 싸다
+    if not a.no_captions:
+        print("\n[1/5] 글자 기하 검증")
+        preflight(run_dir, want, cfg, a.preset, src, a.hook_cover_max, a.strict)
+        if a.check_only:
+            print("\n[완료] --check-only: 렌더하지 않고 끝냅니다")
+            return 0
+    elif a.check_only:
+        die("--check-only는 자막이 있을 때만 의미가 있습니다 (--no-captions와 함께 못 씁니다)")
+
     points = [float(x) for x in a.align_points.split(",") if x.strip()]
     points = [t for t in points if t < min(src["duration"], 1e9) - 0.5]
 
     # ① 정렬 검증
     if audio_src is not None and not a.skip_align_check:
-        print("\n[1/4] 정렬 검증 — 영상 소스와 오디오 소스가 같은 타임라인인가")
+        print("\n[2/5] 정렬 검증 — 영상 소스와 오디오 소스가 같은 타임라인인가")
         rows, bad = verify_alignment(video, audio_src, points, fps, tmp)
         for r in rows:
             print(f"   {r['t']:5.1f}s  shift {r['shift_frames']:+d}f  PSNR {r['psnr']:6.2f}")
@@ -288,9 +434,9 @@ def main() -> int:
             die(f"시간 드리프트 감지 (처음 {shifts[0]:+d}f → 끝 {shifts[-1]:+d}f) — 속도가 다릅니다")
         print("   → 정렬 확인. 오디오를 옮겨도 안전합니다.")
     elif audio_src is not None:
-        print("\n[1/4] 정렬 검증 생략 (--skip-align-check)")
+        print("\n[2/5] 정렬 검증 생략 (--skip-align-check)")
     else:
-        print("\n[1/4] 정렬 검증 불필요 (--audio 없음, 소스 자체 오디오 사용)")
+        print("\n[2/5] 정렬 검증 불필요 (--audio 없음, 소스 자체 오디오 사용)")
 
     results = {}
     for i, ratio in enumerate(want, 1):
@@ -299,18 +445,18 @@ def main() -> int:
         pad = out_dir / f".pad_{slug}.mp4"
         final = out_dir / f"final_{slug}.mp4"
 
-        print(f"\n[2/4] {ratio} ({cw}x{ch}) 패딩 — {i}/{len(want)}")
+        print(f"\n[3/5] {ratio} ({cw}x{ch}) 패딩 — {i}/{len(want)}")
         fw, fh = pad_ratio(video, audio_src, pad, src, cw, ch, cfg["background"], fps, a.pad_crf)
         print(f"   원본 {fw}x{fh} 중앙 배치, 좌우 여백 {(cw-fw)//2}px · 상하 {(ch-fh)//2}px")
 
         if a.no_captions:
             shutil.move(str(pad), str(final))
         else:
-            print(f"[3/4] {ratio} 자막·헤드카피 재렌더")
+            print(f"[4/5] {ratio} 자막·헤드카피 재렌더")
             render_captions(run_dir, f"{a.outdir}/.pad_{slug}.mp4",
                             f"{a.outdir}/final_{slug}.mp4", a.crf, a.codec, a.preset)
 
-        print(f"[4/4] {ratio} 검증")
+        print(f"[5/5] {ratio} 검증")
         results[ratio] = verify_output(final, video, cw, ch, fw, fh, points, tmp)
         for k in ("width", "height", "duration_s", "inner_box", "no_crop_psnr", "problems"):
             print(f"   {k}: {results[ratio][k]}")
