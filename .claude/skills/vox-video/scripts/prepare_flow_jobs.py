@@ -32,7 +32,10 @@ JOBS_CONTRACT = "vox-flow-browser-jobs-v1"
 # Flow의 Omni가 받는 생성 길이. 우리 파이프라인은 4/6만 쓴다.
 OMNI_DURATIONS = {4, 6, 8, 10}
 PIPELINE_DURATIONS = {4, 6}
-PROMPT_MAX = 2600
+# Flow 입력창 상한 실측 근거: 기미 오일 편(20260813) jobs.json에 3597자 프롬프트가
+# 통과해 영상 생성·회수까지 완료됐다. 도입값 2600(08-02)은 근거 미기록 —
+# 2026-08-24 사용자 승인으로 상향. 4000 초과분은 파일럿 제출의 SHA 대조로 검증.
+PROMPT_MAX = 4000
 
 
 def sha256_file(path: Path) -> str:
