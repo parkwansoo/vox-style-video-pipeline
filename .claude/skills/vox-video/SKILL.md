@@ -471,10 +471,11 @@ Flow는 9:16·16:9만 받는다. 4:5·1:1 이미지를 그대로 넣으면 **여
 
 1. **사전 패딩**: 클립 first/end 이미지 상하에 단색 여백을 붙여 9:16
    입력본을 만든다. 패드색은 **그 컷 배경의 실측색**(상단 순수 배경 영역
-   평균). 예: 1856×2304(4:5) → 1856×3300, 상하 각 498px. 패딩본은 원본
-   마스터와 **별도 파일**로 둔다 — prepare_flow_jobs가
-   `clip<N>_first/end.png`명을 찾으므로 접미사 클립 번호(`1b`)를 쓰면
-   원본과 안 겹친다 (자동화는 TODO)
+   중앙값). `preflight.json`의 `master_ratio` 비율 박스에 콘텐츠를 맞추고,
+   first/end 쌍은 first에서 잰 같은 밴드색을 쓴다. 패딩본은 원본 마스터와
+   **별도 `clip<N>p*.png` 파일**로 둔다. 공용 생성기:
+   `.venv/bin/python3 .claude/skills/vox-video/scripts/pad_for_flow.py
+   --run output/<run> --chapter 1 --clip <번호...>`
 2. **프롬프트 여백 잠금** (검증 원문, 프리앰블에 그대로):
    `The flat solid <색> bands at the TOP and BOTTOM edges of both frames
    are fixed graphic margins, not scenery - they stay solid, empty and
@@ -484,9 +485,13 @@ Flow는 9:16·16:9만 받는다. 4:5·1:1 이미지를 그대로 넣으면 **여
    top or bottom margin bands, or the bands changing size, colour or
    position - they stay flat solid colour from first frame to last`
 3. **Flow 설정은 9:16 그대로** — 절차는 flow-browser.md와 동일하고
-   업로드 대상만 패딩본이다
-4. **회수 후 중앙 크롭 복원**: 720×1280 산출 기준 콘텐츠는 **y[193,1087)**
-   고정 기하 (패드 498/3300=15.09%): `ffmpeg -vf crop=720:894:0:193`.
+   업로드 대상만 패딩본이다. `prepare_flow_jobs.py`가 패딩본을 인지해
+   jobs.json의 `images[].path`에 업로드본, `master_path`에 원천을 기록한다
+4. **회수 후 중앙 크롭 복원**: **jobs.json의 `recover_crop`이 정본**이다.
+   개별 이미지 치수·밴드 픽셀을 역산하지 않는다. `preflight.json`의
+   `master_ratio: [W,H]`에서 제공자 720×1280 기준 `h = round(720×H/W)`
+   (홀수면 1 내려 짝수화), `y = (1280−h)/2`로 계산한다. 4:5 편은
+   `crop=720:900:0:190`, 1:1 편은 `crop=720:720:0:280`이다.
    Flow 워터마크(우하단)가 하단 여백 안에 박히므로 **크롭에서 함께
    제거된다** — 워터마크 후처리가 불필요해지는 부수 효과
 5. **검수**: 여백 색 드리프트를 프레임 샘플로 확인한다 (실측 정상치

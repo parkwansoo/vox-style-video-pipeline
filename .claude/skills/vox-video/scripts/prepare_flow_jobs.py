@@ -5,8 +5,11 @@ Omni를 API 대신 Google Flow 구독으로 돌릴 때 쓴다. 실제 브라우�
 references/flow-browser.md 절차를 따르고, 이 스크립트는 외부 요청 없이
 프롬프트·이미지·해시·제출 순서만 결정한다.
 
-우리 파이프라인은 클립당 이미지가 **한 장**이다(Omni 참조 이미지). first/end
-두 장을 쓰는 다른 프로젝트 방식과 다르므로 애셋 수는 항상 1이다.
+입력은 두 모드다. clip<N>.png 한 장이면 Flow "프레임" 모드,
+clip<N>_first.png + clip<N>_end.png 두 장이면 "애셋" 모드다. 대응하는
+clip<N>p*.png 패딩본이 있으면 실제 업로드는 패딩본을 쓰고 4:5 마스터는
+master_path로 함께 기록한다. 회수 크롭은 개별 이미지 치수가 아니라 편의
+preflight.json master_ratio를 정본으로 계산한다.
 
 Usage:
   python3 prepare_flow_jobs.py \\
@@ -27,6 +30,8 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
+
+from PIL import Image
 
 JOBS_CONTRACT = "vox-flow-browser-jobs-v1"
 # Flow의 Omni가 받는 생성 길이. 우리 파이프라인은 4/6만 쓴다.
@@ -89,7 +94,15 @@ def parse_clip_spec(raw: str) -> tuple[str, int]:
     return number, duration
 
 
-def resolve_images(chapter_dir: Path, number: str) -> tuple[str, list[tuple[str, Path]]]:
+def padded_path(master: Path) -> Path:
+    match = re.fullmatch(r"clip(\d+[a-z]?)(_first|_end)?\.png", master.name)
+    if not match:
+        raise ValueError(f"패딩본 이름을 계산할 수 없습니다: {master}")
+    suffix = match.group(2) or ""
+    return master.with_name(f"clip{match.group(1)}p{suffix}.png")
+
+
+def resolve_images(chapter_dir: Path, number: str) -> tuple[str, list[dict[str, object]]]:
     """이 클립이 이미지 1장인지 첫·끝 2장인지 파일 존재로 정하고, Flow 화면에서
     눌러야 할 입력 모드를 함께 돌려준다.
 
@@ -106,18 +119,74 @@ def resolve_images(chapter_dir: Path, number: str) -> tuple[str, list[tuple[str,
     first = chapter_dir / f"clip{number}_first.png"
     end = chapter_dir / f"clip{number}_end.png"
     if first.is_file() and end.is_file():
-        return "애셋", [("first", first), ("end", end)]
-    if first.is_file() or end.is_file():
+        mode, masters = "애셋", [("first", first), ("end", end)]
+    elif first.is_file() or end.is_file():
         missing = end if first.is_file() else first
         raise ValueError(f"첫·끝 두 장을 쓰려면 둘 다 있어야 합니다. 없는 파일: {missing}")
-    single = chapter_dir / f"clip{number}.png"
-    if not single.is_file():
-        raise ValueError(f"필요한 파일이 없습니다: {single}")
-    return "프레임", [("first", single)]
+    else:
+        single = chapter_dir / f"clip{number}.png"
+        if not single.is_file():
+            raise ValueError(f"필요한 파일이 없습니다: {single}")
+        mode, masters = "프레임", [("first", single)]
+
+    padded = [(role, master, padded_path(master)) for role, master in masters]
+    found = [pad.is_file() for _, _, pad in padded]
+    if any(found) and not all(found):
+        missing = [str(pad) for (_, _, pad), exists in zip(padded, found) if not exists]
+        raise ValueError("한 작업의 패딩본은 전부 있거나 전부 없어야 합니다. 없는 파일: "
+                         + ", ".join(missing))
+    return mode, [
+        {"role": role, "path": pad if all(found) else master,
+         "master_path": master if all(found) else None}
+        for role, master, pad in padded
+    ]
+
+
+def load_master_ratio(run_dir: Path) -> tuple[int, int] | None:
+    preflight_path = run_dir / "preflight.json"
+    if not preflight_path.is_file():
+        return None
+    try:
+        preflight = json.loads(preflight_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError(f"preflight.json을 읽을 수 없습니다: {preflight_path} ({exc})") from exc
+    raw = preflight.get("master_ratio")
+    if raw is None:
+        return None
+    if (not isinstance(raw, list) or len(raw) != 2
+            or any(isinstance(value, bool) or not isinstance(value, int) or value <= 0
+                   for value in raw)):
+        raise ValueError(f"master_ratio는 양의 정수 [W, H] 배열이어야 합니다: {raw}")
+    return raw[0], raw[1]
+
+
+def crop_for_ratio(ratio: tuple[int, int], out_w: int = 720,
+                   out_h: int = 1280) -> str:
+    ratio_w, ratio_h = ratio
+    crop_h = round(out_w * ratio_h / ratio_w)
+    if crop_h % 2:
+        crop_h -= 1
+    if crop_h <= 0 or crop_h > out_h:
+        raise ValueError(f"제공자 프레임에 들어갈 수 없는 master_ratio입니다: {ratio_w}:{ratio_h}")
+    crop_y = (out_h - crop_h) // 2
+    return f"crop={out_w}:{crop_h}:0:{crop_y}"
+
+
+def warn_ratio_drift(master: Path, ratio: tuple[int, int]) -> None:
+    with Image.open(master) as image:
+        width, height = image.size
+    expected = ratio[0] / ratio[1]
+    actual = width / height
+    drift = abs(actual - expected) / expected
+    if drift > 0.01:
+        print(f"[경고] {master.name}: 마스터 종횡비 {width}:{height}가 "
+              f"master_ratio {ratio[0]}:{ratio[1]}에서 {drift * 100:.2f}% 이탈",
+              file=sys.stderr)
 
 
 def build_job(chapter_dir: Path, run_slug: str, chapter: int,
-              number: str, duration: int) -> dict[str, object]:
+              number: str, duration: int,
+              master_ratio: tuple[int, int] | None = None) -> dict[str, object]:
     prompt_path = chapter_dir / f"clip{number}_vid.txt"
     if not prompt_path.is_file():
         raise ValueError(f"필요한 파일이 없습니다: {prompt_path}")
@@ -147,14 +216,25 @@ def build_job(chapter_dir: Path, run_slug: str, chapter: int,
 
     job_id = f"ch{chapter}-clip{number}"
     images = []
-    for role, path in image_specs:
+    padded = any(spec["master_path"] is not None for spec in image_specs)
+    if padded and master_ratio is None:
+        raise ValueError(
+            f"clip{number}에 패딩본이 있지만 preflight.json에 master_ratio가 없습니다"
+        )
+    for spec in image_specs:
+        role, path = str(spec["role"]), Path(spec["path"])
         sha = sha256_file(path)
-        images.append({
+        image = {
             "role": role,
             "path": str(path.resolve()),
             "sha256": sha,
             "upload_name": f"{run_slug}-{job_id}-{role}-{sha[:8]}.png",
-        })
+        }
+        if spec["master_path"] is not None:
+            master = Path(spec["master_path"])
+            image["master_path"] = str(master.resolve())
+            warn_ratio_drift(master, master_ratio)
+        images.append(image)
     job: dict[str, object] = {
         "job_id": job_id,
         "chapter": chapter,
@@ -163,6 +243,7 @@ def build_job(chapter_dir: Path, run_slug: str, chapter: int,
         # Flow 설정 팝업에서 눌러야 할 입력 모드 라벨 그대로 ("프레임" / "애셋")
         "flow_input_mode": flow_input_mode,
         "asset_count": len(images),
+        "recover_crop": crop_for_ratio(master_ratio) if padded else None,
         # 첨부 순서가 곧 첫 프레임 → 끝 프레임 순서다
         "images": images,
         "prompt_path": str(prompt_path.resolve()),
@@ -225,7 +306,12 @@ def main() -> int:
         specs.append((number, duration))
 
     run_slug = run_dir.name
-    jobs = [build_job(chapter_dir, run_slug, args.chapter, n, d) for n, d in specs]
+    try:
+        master_ratio = load_master_ratio(run_dir)
+        jobs = [build_job(chapter_dir, run_slug, args.chapter, n, d, master_ratio)
+                for n, d in specs]
+    except ValueError as exc:
+        sys.exit(str(exc))
 
     # 챕터마다 따로 준비하므로 경로에 챕터를 넣는다. 안 넣으면 ch2가 ch1의
     # 매니페스트를 덮어쓰려다 fingerprint 불일치로 거부당한다.
@@ -239,7 +325,7 @@ def main() -> int:
 
     order = submission_order(jobs)
     fingerprint = sha256_text(json.dumps(
-        [[j["job_id"], j["prompt_single_line_sha256"],
+        [[j["job_id"], j["prompt_single_line_sha256"], j["recover_crop"],
           [i["sha256"] for i in j["images"]],
           j["provider_duration_sec"], j["flow_input_mode"]] for j in jobs],
         ensure_ascii=False, sort_keys=True,
@@ -294,6 +380,7 @@ def main() -> int:
         "flow_input_mode": {j["job_id"]: f'{j["flow_input_mode"]}({j["asset_count"]}장)'
                             for j in jobs},
         "prompt_lengths": {j["job_id"]: j["prompt_single_line_length"] for j in jobs},
+        "recover_crop": {j["job_id"]: j["recover_crop"] for j in jobs},
     }, ensure_ascii=False, indent=2))
     return 0
 
