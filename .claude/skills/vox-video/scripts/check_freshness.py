@@ -21,6 +21,7 @@ Usage:
   # --chain A:B = clip<B>의 first는 clip<A> 영상보다 새것이어야 한다
 """
 import argparse
+import json
 import re
 import sys
 from pathlib import Path
@@ -55,39 +56,89 @@ def chain_targets(ch, number):
     return []
 
 
-def main():
-    p = argparse.ArgumentParser()
-    p.add_argument("--run", required=True, type=Path)
-    p.add_argument("--chapter", type=int, default=1)
-    p.add_argument("--chain", nargs="*", default=[], metavar="A:B",
-                   help="clip<B>의 first가 clip<A> 영상보다 새것이어야 하는 쌍")
-    args = p.parse_args()
+def load_preflight(run: Path) -> dict:
+    path = run / "preflight.json"
+    if not path.is_file():
+        return {}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError(f"preflight.json을 읽을 수 없습니다: {path} ({exc})") from exc
+    if not isinstance(data, dict):
+        raise ValueError(f"preflight.json 최상위 값은 객체여야 합니다: {path}")
+    return data
 
-    ch = args.run / f"ch{args.chapter}"
+
+def validate_exceptions(raw, key: str) -> list[dict[str, str]]:
+    if raw is None:
+        return []
+    if not isinstance(raw, list):
+        raise ValueError(f"preflight.json의 {key}는 배열이어야 합니다")
+    result = []
+    for index, item in enumerate(raw):
+        if not isinstance(item, dict):
+            raise ValueError(f"{key}[{index}]는 객체여야 합니다")
+        missing = [name for name in ("file", "reason", "date") if not item.get(name)]
+        if missing:
+            raise ValueError(f"{key}[{index}] 필수 필드 없음: {', '.join(missing)}")
+        result.append({name: str(item[name]) for name in ("file", "reason", "date")})
+    return result
+
+
+def run_freshness(run: Path, chapter: int = 1, chains=None, exceptions=None,
+                  clip_numbers=None) -> list[dict[str, object]]:
+    """신선도 위반 중 예외가 아닌 항목을 반환한다.
+
+    chains/exceptions가 None이면 preflight.json에서 읽는다. clip_numbers를 주면
+    해당 클립의 업로드 이미지와 관련 체인만 검사한다(WP2 제출 게이트용).
+    """
+    run = Path(run)
+    preflight = load_preflight(run)
+    if chains is None:
+        chains = preflight.get("chains", [])
+    if exceptions is None:
+        exceptions = preflight.get("freshness_exceptions", [])
+    if not isinstance(chains, list):
+        raise ValueError("preflight.json의 chains는 배열이어야 합니다")
+    exceptions = validate_exceptions(exceptions, "freshness_exceptions")
+    selected = {str(number) for number in clip_numbers} if clip_numbers is not None else None
+
+    ch = run / f"ch{chapter}"
     if not ch.is_dir():
-        sys.exit(f"챕터 폴더 없음: {ch}")
+        raise ValueError(f"챕터 폴더 없음: {ch}")
 
-    stale = []
+    stale: list[dict[str, object]] = []
 
     # 1) 패딩본 — 원본보다 오래된 패딩본은 구버전 이미지다
     for png in sorted(ch.glob("clip*.png")):
+        match = re.fullmatch(r"clip(\d+[a-z]?)(?:_first|_end)?\.png", png.name)
+        if selected is not None and (not match or match.group(1) not in selected):
+            continue
         pad = padded_name(png.name)
         if not pad:
             continue
         pad_path = ch / pad
         if pad_path.is_file() and pad_path.stat().st_mtime < png.stat().st_mtime - MARGIN_SEC:
-            stale.append((f"패딩본 낡음: {pad}", fmt(pad_path.stat().st_mtime),
-                          f"원본 {png.name}", fmt(png.stat().st_mtime),
-                          f"→ {png.name}에서 패딩본을 다시 만든다"))
+            stale.append({
+                "file": pad,
+                "what": f"패딩본 낡음: {pad}",
+                "derived_ts": pad_path.stat().st_mtime,
+                "source": f"원본 {png.name}",
+                "source_ts": png.stat().st_mtime,
+                "fix": f"→ {png.name}에서 패딩본을 다시 만든다",
+            })
 
     # 2) 체인 — 상류 영상보다 오래된 first는 옛 끝 프레임이다
-    for spec in args.chain:
-        m = re.fullmatch(r"(\d+[a-z]?):(\d+[a-z]?)", spec)
-        if not m:
-            sys.exit(f"--chain 형식은 A:B 입니다: {spec}")
-        a, b = m.group(1), m.group(2)
-        source = next((ch / n for n in (f"clip{a}p_raw.mp4", f"clip{a}.mp4")
-                       if (ch / n).is_file()), None)
+    for spec in chains:
+        spec = str(spec)
+        match = re.fullmatch(r"(\d+[a-z]?):(\d+[a-z]?)", spec)
+        if not match:
+            raise ValueError(f"--chain 형식은 A:B 입니다: {spec}")
+        a, b = match.group(1), match.group(2)
+        if selected is not None and a not in selected and b not in selected:
+            continue
+        source = next((ch / name for name in (f"clip{a}p_raw.mp4", f"clip{a}.mp4")
+                       if (ch / name).is_file()), None)
         if source is None:
             print(f"[알림] 체인 {spec}: 상류 영상이 아직 없다 (clip{a}) — 건너뜀")
             continue
@@ -95,17 +146,62 @@ def main():
         if not targets:
             print(f"[알림] 체인 {spec}: clip{b}의 first가 아직 없다 — 건너뜀")
             continue
-        for t in targets:
-            if t.stat().st_mtime < source.stat().st_mtime - MARGIN_SEC:
-                stale.append((f"체인 first 낡음: {t.name}", fmt(t.stat().st_mtime),
-                              f"상류 {source.name}", fmt(source.stat().st_mtime),
-                              f"→ {source.name}의 끝 프레임을 재추출한다"))
+        for target in targets:
+            if target.stat().st_mtime < source.stat().st_mtime - MARGIN_SEC:
+                stale.append({
+                    "file": target.name,
+                    "what": f"체인 first 낡음: {target.name}",
+                    "derived_ts": target.stat().st_mtime,
+                    "source": f"상류 {source.name}",
+                    "source_ts": source.stat().st_mtime,
+                    "fix": f"→ {source.name}의 끝 프레임을 재추출한다",
+                })
 
-    if stale:
-        print(f"[실패] 원천보다 낡은 파생 자산 {len(stale)}건:")
-        for what, w_ts, src, s_ts, fix in stale:
-            print(f"  {what} ({w_ts}) < {src} ({s_ts})")
-            print(f"    {fix}")
+    by_file: dict[str, dict[str, str]] = {}
+    for exception in exceptions:
+        file_name = exception["file"]
+        if file_name in by_file:
+            raise ValueError(f"freshness_exceptions에 파일이 중복됩니다: {file_name}")
+        by_file[file_name] = exception
+
+    matched = set()
+    findings = []
+    for finding in stale:
+        exception = by_file.get(str(finding["file"]))
+        if exception:
+            matched.add(exception["file"])
+            print(f"[예외] {exception['file']} — {exception['reason']} ({exception['date']})")
+        else:
+            findings.append(finding)
+    for exception in exceptions:
+        if exception["file"] not in matched:
+            print(f"[알림] 낡은 예외 — 정리 후보: {exception['file']} — "
+                  f"{exception['reason']} ({exception['date']})")
+    return findings
+
+
+def print_findings(findings: list[dict[str, object]]) -> None:
+    print(f"[실패] 원천보다 낡은 파생 자산 {len(findings)}건:")
+    for finding in findings:
+        print(f"  {finding['what']} ({fmt(float(finding['derived_ts']))}) < "
+              f"{finding['source']} ({fmt(float(finding['source_ts']))})")
+        print(f"    {finding['fix']}")
+
+
+def main():
+    p = argparse.ArgumentParser()
+    p.add_argument("--run", required=True, type=Path)
+    p.add_argument("--chapter", type=int, default=1)
+    p.add_argument("--chain", nargs="*", default=None, metavar="A:B",
+                   help="clip<B>의 first가 clip<A> 영상보다 새것이어야 하는 쌍")
+    args = p.parse_args()
+
+    try:
+        findings = run_freshness(args.run, args.chapter, args.chain)
+    except ValueError as exc:
+        sys.exit(str(exc))
+    if findings:
+        print_findings(findings)
         sys.exit(2)
     print("파생 자산 신선도 통과 (패딩본·체인 first 모두 원천 이후)")
 

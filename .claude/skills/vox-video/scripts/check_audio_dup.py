@@ -59,23 +59,64 @@ def correlation(a, b) -> float:
     return sum((a[i] - ma) * (b[i] - mb) for i in range(n)) / (va * vb)
 
 
-def main() -> int:
-    p = argparse.ArgumentParser()
-    p.add_argument("--manifest", required=True, type=Path)
-    p.add_argument("--threshold", type=float, default=THRESHOLD)
-    args = p.parse_args()
+def load_audio_exceptions(manifest_path: Path) -> list[dict[str, str]]:
+    preflight_path = manifest_path.parent / "preflight.json"
+    if not preflight_path.is_file():
+        return []
+    try:
+        preflight = json.loads(preflight_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError(
+            f"preflight.json을 읽을 수 없습니다: {preflight_path} ({exc})"
+        ) from exc
+    raw = preflight.get("audio_dup_exceptions", [])
+    if not isinstance(raw, list):
+        raise ValueError("preflight.json의 audio_dup_exceptions는 배열이어야 합니다")
+    result = []
+    for index, item in enumerate(raw):
+        if not isinstance(item, dict):
+            raise ValueError(f"audio_dup_exceptions[{index}]는 객체여야 합니다")
+        missing = [name for name in ("file", "reason", "date") if not item.get(name)]
+        if missing:
+            raise ValueError(
+                f"audio_dup_exceptions[{index}] 필수 필드 없음: {', '.join(missing)}"
+            )
+        result.append({name: str(item[name]) for name in ("file", "reason", "date")})
+    return result
 
-    manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
+
+def run_audio_dup(manifest: Path, exceptions=None,
+                  threshold: float = THRESHOLD) -> list[tuple[str, float, float, float]]:
+    """나레이션 중복 중 예외가 아닌 항목을 반환한다."""
+    manifest_path = Path(manifest)
+    if exceptions is None:
+        exceptions = load_audio_exceptions(manifest_path)
+    elif not isinstance(exceptions, list):
+        raise ValueError("audio_dup_exceptions는 배열이어야 합니다")
+
+    normalized = []
+    for index, item in enumerate(exceptions):
+        if not isinstance(item, dict):
+            raise ValueError(f"audio_dup_exceptions[{index}]는 객체여야 합니다")
+        missing = [name for name in ("file", "reason", "date") if not item.get(name)]
+        if missing:
+            raise ValueError(
+                f"audio_dup_exceptions[{index}] 필수 필드 없음: {', '.join(missing)}"
+            )
+        normalized.append({name: str(item[name]) for name in ("file", "reason", "date")})
+    exceptions = normalized
+
+    manifest_data = json.loads(manifest_path.read_text(encoding="utf-8"))
     # manifest 경로는 프로젝트 루트 기준이다
     root = Path.cwd()
-    hits, checked, skipped = [], 0, []
+    raw_hits, checked, skipped = [], 0, []
 
     with tempfile.TemporaryDirectory() as tmp:
         tmp = Path(tmp)
-        for chapter in manifest.get("chapters", []):
+        for chapter in manifest_data.get("chapters", []):
             narration = root / chapter["narration"]
             if not narration.is_file():
-                sys.exit(f"나레이션 파일이 없습니다: {narration}")
+                raise ValueError(f"나레이션 파일이 없습니다: {narration}")
             for clip in chapter.get("clips", []):
                 src = root / clip["file"]
                 name = Path(clip["file"]).name
@@ -94,19 +135,57 @@ def main() -> int:
                     skipped.append(f"{name} ({exc})")
                     continue
                 checked += 1
-                if abs(r) > args.threshold:
-                    hits.append((name, r, start, end))
+                if abs(r) > threshold:
+                    raw_hits.append((name, r, start, end))
 
     print(f"검사 {checked}컷" + (f" · 건너뜀 {len(skipped)}" if skipped else ""))
     for s in skipped:
         print(f"  [알림] {s}")
+
+    by_file = {}
+    for exception in exceptions:
+        if exception["file"] in by_file:
+            raise ValueError(
+                f"audio_dup_exceptions에 파일이 중복됩니다: {exception['file']}"
+            )
+        by_file[exception["file"]] = exception
+    matched = set()
+    hits = []
+    for hit in raw_hits:
+        exception = by_file.get(hit[0])
+        if exception:
+            matched.add(exception["file"])
+            print(f"[예외] {exception['file']} — {exception['reason']} ({exception['date']})")
+        else:
+            hits.append(hit)
+    for exception in exceptions:
+        if exception["file"] not in matched:
+            print(f"[알림] 낡은 예외 — 정리 후보: {exception['file']} — "
+                  f"{exception['reason']} ({exception['date']})")
+    return hits
+
+
+def print_hits(hits: list[tuple[str, float, float, float]]) -> None:
+    print(f"\n[실패] 클립 오디오에 나레이션이 섞인 컷 {len(hits)}건:")
+    for name, r, start, end in hits:
+        print(f"  {name}  구간 {start:.2f}~{end:.2f}s  상관 r={r:.3f}")
+    print("\n  합본에서 목소리가 두 겹으로 들립니다. 클립 쪽 오디오를 무음화하세요:")
+    print("  ffmpeg -i in.mp4 -f lavfi -i anullsrc=r=48000:cl=stereo \\")
+    print("    -map 0:v -map 1:a -c:v copy -c:a aac -shortest out.mp4")
+
+
+def main() -> int:
+    p = argparse.ArgumentParser()
+    p.add_argument("--manifest", required=True, type=Path)
+    p.add_argument("--threshold", type=float, default=THRESHOLD)
+    args = p.parse_args()
+
+    try:
+        hits = run_audio_dup(args.manifest, threshold=args.threshold)
+    except (OSError, json.JSONDecodeError, ValueError) as exc:
+        sys.exit(str(exc))
     if hits:
-        print(f"\n[실패] 클립 오디오에 나레이션이 섞인 컷 {len(hits)}건:")
-        for name, r, s, e in hits:
-            print(f"  {name}  구간 {s:.2f}~{e:.2f}s  상관 r={r:.3f}")
-        print("\n  합본에서 목소리가 두 겹으로 들립니다. 클립 쪽 오디오를 무음화하세요:")
-        print("  ffmpeg -i in.mp4 -f lavfi -i anullsrc=r=48000:cl=stereo \\")
-        print("    -map 0:v -map 1:a -c:v copy -c:a aac -shortest out.mp4")
+        print_hits(hits)
         return 2
     print("나레이션 중복 없음")
     return 0
