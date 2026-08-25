@@ -36,6 +36,10 @@ PIPELINE_DURATIONS = {4, 6}
 # 통과해 영상 생성·회수까지 완료됐다. 도입값 2600(08-02)은 근거 미기록 —
 # 2026-08-24 사용자 승인으로 상향. 4000 초과분은 파일럿 제출의 SHA 대조로 검증.
 PROMPT_MAX = 4000
+# 카메라 가속 어휘. 카메라 문형만 잡는다 — 나이브한 "accelerat" 검색은 소품
+# 가속(clip1 시계 바늘 "hands accelerate")을 오탐한다(2026-08-25 실측).
+# 카메라 가속은 내부↔외부 전환 컷에만 쓴다 (2026-08-25 사용자 확정).
+CAMERA_ACCEL = re.compile(r"RUSHES|accelerating hard|camera accelerates")
 
 
 def sha256_file(path: Path) -> str:
@@ -130,6 +134,16 @@ def build_job(chapter_dir: Path, run_slug: str, chapter: int,
         )
     if re.search(r"[\r\n​﻿]", single_line):
         raise ValueError(f"프롬프트에 숨은 문자가 남아 있습니다: {prompt_path}")
+    # 지시-금지 모순 검사: 프리앰블 "slow and continuous"와 카메라 가속이 한
+    # 프롬프트에 공존하면 지시가 서로 싸운다. 08-24·08-25 두 번 손으로 교정한
+    # 재발 유형이라(clip8·9, clip5 잔존) 문서가 아니라 여기서 기계로 막는다.
+    if "slow and continuous" in single_line and CAMERA_ACCEL.search(single_line):
+        raise ValueError(
+            f"지시-금지 모순: 'slow and continuous'와 카메라 가속"
+            f"({CAMERA_ACCEL.search(single_line).group()})이 한 프롬프트에 있습니다: "
+            f"{prompt_path}\n  가속 컷은 프리앰블에서 'slow and'를 지우세요 "
+            f"(카메라 가속은 내부↔외부 전환 컷 전용 — 2026-08-25 사용자 확정)."
+        )
 
     job_id = f"ch{chapter}-clip{number}"
     images = []

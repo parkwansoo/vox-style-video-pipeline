@@ -54,6 +54,25 @@ def audio_level(path):
     return mean, maxv
 
 
+def downloads_residue(clip_files, downloads_dir, margin_sec=12 * 3600):
+    """회수한 클립과 같은 시간대의 mp4가 ~/Downloads에 남아 있는지 찾는다.
+
+    flow-browser 7절: 회수는 cp가 아니라 mv — 다운로드 폴더에 사본을 남기지
+    않는다. 08-13과 08-25 두 번, 잔여물을 사용자가 직접 정리했다. 문서 규칙만으로
+    안 지켜져서, 어차피 돌리는 회수 검증에 실측 검사를 박는다.
+
+    기준: 검사 대상 클립의 가장 이른 mtime에서 margin(기본 12h)을 뺀 시각 이후에
+    수정된 mp4. cp 사본은 다운로드 시각을 갖고 프로젝트 사본은 복사 시각을 가지므로
+    잔여물의 mtime은 항상 클립보다 이르다 — margin이 그 간격을 덮는다. 오래된
+    무관 파일은 걸리지 않는다. 이 함수는 찾기만 한다 — 삭제는 사용자 몫이다.
+    """
+    if not downloads_dir.is_dir():
+        return []
+    cutoff = min(f.stat().st_mtime for f in clip_files) - margin_sec
+    return sorted(p for p in downloads_dir.glob("*.mp4")
+                  if p.stat().st_mtime >= cutoff)
+
+
 def dump_frames(path, out_dir, name, duration):
     out_dir.mkdir(parents=True, exist_ok=True)
     outs = []
@@ -74,6 +93,9 @@ def main():
     p.add_argument("--clips", nargs="+", required=True,
                    help="클립 번호(3 6b 17) 또는 all")
     p.add_argument("--voice-threshold", type=float, default=VOICE_THRESHOLD_DB)
+    p.add_argument("--downloads-dir", type=Path,
+                   default=Path.home() / "Downloads",
+                   help="잔여물 검사 대상 폴더 (테스트용 오버라이드)")
     args = p.parse_args()
 
     ch_dir = Path(args.run) / f"ch{args.chapter}"
@@ -124,12 +146,23 @@ def main():
     if silent:
         print(f"\n[알림] 오디오 스트림이 없는 클립: {', '.join(silent)}")
     print(f"\n프레임: {frame_dir}/ (첫·끝, 원본 해상도 — 라벨·실루엣은 여기서 눈으로)")
+    failed = False
     if warnings:
         print(f"\n[경고] 오디오 레벨이 {args.voice_threshold}dB보다 큰 클립: "
               f"{', '.join(warnings)}")
         print("       사람이 말하는 장면이면 Flow가 목소리를 지어 넣었을 가능성이 큽니다.")
         print("       들어보고 맞으면: ffmpeg -i in.mp4 -f lavfi -i anullsrc=r=48000:cl=stereo"
               " -map 0:v -map 1:a -c:v copy -c:a aac -shortest out.mp4")
+        failed = True
+    residue = downloads_residue(files, args.downloads_dir)
+    if residue:
+        print(f"\n[실패] {args.downloads_dir}에 이 회수와 같은 시간대의 mp4가 남아 있습니다:")
+        for r in residue:
+            print(f"       {r.name}")
+        print("       회수는 cp가 아니라 mv입니다 (flow-browser 7절). 프로젝트 사본을")
+        print("       확인한 뒤 mv로 옮기거나 정리하세요. 무관한 파일이면 사유를 남기고 무시합니다.")
+        failed = True
+    if failed:
         sys.exit(2)
 
 
