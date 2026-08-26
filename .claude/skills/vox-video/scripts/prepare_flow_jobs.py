@@ -36,6 +36,7 @@ from PIL import Image
 from check_freshness import print_findings, run_freshness
 
 JOBS_CONTRACT = "vox-flow-browser-jobs-v1"
+PRODUCT_CHECK_CONTRACT = "vox-product-check-v1"
 # Flow의 Omni가 받는 생성 길이. 우리 파이프라인은 4/6만 쓴다.
 OMNI_DURATIONS = {4, 6, 8, 10}
 PIPELINE_DURATIONS = {4, 6}
@@ -186,6 +187,46 @@ def warn_ratio_drift(master: Path, ratio: tuple[int, int]) -> None:
               file=sys.stderr)
 
 
+def check_product_gate(jobs: list[dict[str, object]], skip: bool = False) -> None:
+    locked = [job for job in jobs if "PRODUCT LOCK" in str(job["prompt_single_line"])]
+    if not locked:
+        return
+    if skip:
+        print("[경고] PRODUCT LOCK 제품 검증 게이트 생략", file=sys.stderr)
+        return
+
+    failures = []
+    for job in locked:
+        for image in job["images"]:
+            target = Path(image.get("master_path") or image["path"])
+            report = target.parent / "_검수" / f"제품검증_{target.stem}.json"
+            if not report.is_file():
+                failures.append(f"{job['job_id']} {target.name}: 결과 JSON 없음 ({report})")
+                continue
+            try:
+                result = json.loads(report.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError) as exc:
+                failures.append(f"{job['job_id']} {target.name}: 결과 JSON 읽기 실패 ({exc})")
+                continue
+            if result.get("contract") != PRODUCT_CHECK_CONTRACT:
+                failures.append(
+                    f"{job['job_id']} {target.name}: 알 수 없는 검사 계약 "
+                    f"({result.get('contract')})"
+                )
+                continue
+            status = result.get("status")
+            if status not in {"pass", "sheet_only"}:
+                failures.append(f"{job['job_id']} {target.name}: status={status}")
+                continue
+            current_sha = sha256_file(target)
+            if result.get("image_sha256") != current_sha:
+                failures.append(f"{job['job_id']} {target.name}: 결과 JSON의 이미지 SHA가 현재본과 다름")
+                continue
+            print(f"[제품검증] {job['job_id']} {target.name}: {status}")
+    if failures:
+        raise ValueError("PRODUCT LOCK 제품 검증 실패:\n  " + "\n  ".join(failures))
+
+
 def build_job(chapter_dir: Path, run_slug: str, chapter: int,
               number: str, duration: int,
               master_ratio: tuple[int, int] | None = None) -> dict[str, object]:
@@ -293,6 +334,8 @@ def main() -> int:
     p.add_argument("--aspect", default="9:16", choices=["16:9", "9:16"])
     p.add_argument("--skip-freshness", action="store_true",
                    help="제출 이미지·체인 신선도 검사를 생략한다")
+    p.add_argument("--skip-product-gate", action="store_true",
+                   help="PRODUCT LOCK 이미지의 제품 검증 결과 게이트를 생략한다")
     args = p.parse_args()
 
     run_dir = args.run.resolve(strict=True)
@@ -314,6 +357,11 @@ def main() -> int:
         master_ratio = load_master_ratio(run_dir)
         jobs = [build_job(chapter_dir, run_slug, args.chapter, n, d, master_ratio)
                 for n, d in specs]
+    except ValueError as exc:
+        sys.exit(str(exc))
+
+    try:
+        check_product_gate(jobs, args.skip_product_gate)
     except ValueError as exc:
         sys.exit(str(exc))
 

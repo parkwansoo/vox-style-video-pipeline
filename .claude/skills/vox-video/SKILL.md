@@ -364,6 +364,26 @@ Diorama 시스템)는 그 계열 스타일일 때만 읽는다 — mg-bodylab �
 .venv/bin/python3 .claude/skills/vox-video/scripts/gen_image.py --prompt-file ... --style-ref assets/style_reference.png --ref assets/products/<제품>/reference.png --out ...
 ```
 
+제품 이미지가 생성되면 같은 제품 레퍼런스와 대조한 검사 기록을 남긴다.
+`--frontal`은 **정면·비가림·수직 병 컷에만** 붙인다. 이 조건을 만족하지
+않는 손 홀드·하이앵글·기울임 컷은 플래그 없이 실행해 `sheet_only` 결과와
+대조 시트를 만들고, 라벨·색·가림·배경을 사람이 확인한다. 정면 컷의 `fail`과
+검사 JSON 누락은 Flow 작업 준비 단계에서 차단된다.
+
+```bash
+# 정면·비가림·수직 병 컷: 수치 판정(pass/fail) + 육안 대조 시트
+.venv/bin/python3 .claude/skills/vox-video/scripts/check_product.py \
+  --product assets/products/<제품> --image output/<run>/ch1/clip19_end.png --frontal
+
+# 그 밖의 제품 컷: 수치축 미적용(sheet_only) + 육안 대조 시트
+.venv/bin/python3 .claude/skills/vox-video/scripts/check_product.py \
+  --product assets/products/<제품> --image output/<run>/ch1/clip10_first.png
+```
+
+`prepare_flow_jobs.py`는 프롬프트의 `PRODUCT LOCK`을 감지해 모든 입력 이미지의
+`_검수/제품검증_<이미지명>.json`과 현재 이미지 SHA를 확인한다. 긴급 우회가
+정말 필요할 때만 `--skip-product-gate`를 쓰며, 이 경우 경고가 기록된다.
+
 **이미 통과한 컷의 재질·색만 고칠 때는** `--revise`에 이전 렌더본을 넘긴다.
 구도(카메라·배치·크기·실루엣)를 붙잡아 둔 채 프롬프트가 지시한 부분만 다시
 그리므로, 새로 생성해 구도를 잃는 일이 없다. 프롬프트에는 바꿀 것을 명시하고

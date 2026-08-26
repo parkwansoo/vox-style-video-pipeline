@@ -1,0 +1,10 @@
+{
+  "reference": "reference.png",
+  "mask": {
+    "red_minus_blue_min": 110,
+    "green_minus_blue_min": 60,
+    "red_min": 110,
+    "min_pixels": 500
+  },
+  "aspect_tolerance": 0.35
+}
