@@ -221,26 +221,26 @@ flow_state.py set --jobs <jobs.json> --job ch1-clip1 --stage completed
 완료 edit에서 원본 MP4를 한 번만 내려받는다. 파일명이 불명확하면 다운로드
 전후의 디렉터리 목록 차이로 새 파일을 찾는다.
 
-내려받은 파일을 표준 위치로 **이동한다(cp가 아니라 mv)** — 다운로드 폴더에
-사본을 남기지 않는다. 페이스오일 편에서 cp를 써서 ~/Downloads에 중복
-10여 개가 쌓였고, 사용자가 직접 정리해야 했다(2026-08-13). Chrome의
+내려받은 파일은 `retrieve_flow.py`로 회수한다. 이 스크립트가 규격 검증,
+표준 위치 **이동(cp가 아니라 mv)**, jobs.json의 `recover_crop`, 상태 갱신,
+`check_clips`까지 한 번에 수행한다. `--src`를 생략하면 최근 30분 mp4가
+정확히 1개일 때만 진행한다.
+
+```bash
+.venv/bin/python3 .claude/skills/vox-video/scripts/retrieve_flow.py \
+  --run output/<run> --run-name run-v01 --job ch1-clip1 \
+  --src ~/Downloads/<다운로드 파일>.mp4
+```
+
+다운로드 폴더에 사본을 남기지 않는다. 페이스오일 편에서 cp를 써서
+~/Downloads에 중복 10여 개가 쌓였고, 사용자가 직접 정리해야 했다(2026-08-13). Chrome의
 다운로드 폴더를 프로젝트로 바꾸는 방법은 쓰지 않는다 — 브라우저 전체
 설정이라 사용자의 다른 다운로드까지 전부 딸려 오고, "매번 묻기"는 자동화가
 제어할 수 없는 OS 파일 선택창을 띄운다.
 
-```bash
-mv <다운로드 파일> output/<run>/ch1/clip1.mp4
-flow_state.py set --jobs <jobs.json> --job ch1-clip1 --stage downloaded --download <경로>
-```
-
-이후 길이·해상도·비율을 기계 점검한다. Flow는 4/6/8초를 주므로 우리가 요청한
-길이와 맞는지 반드시 확인한다. **길이가 다르면 합본의 실효 길이 계산
-(4초→3.75s, 6초→5.75s)이 깨진다.**
-
-```bash
-ffprobe -v error -show_entries format=duration -show_entries stream=width,height \
-  -of default=nw=1 output/<run>/ch1/clip1.mp4
-```
+Flow는 4/6/8초를 주므로 요청 길이와 다르면 합본의 실효 길이 계산
+(4초→3.75s, 6초→5.75s)이 깨진다. `retrieve_flow.py`가 720×1280과
+요청 길이 ±0.1초를 ffprobe로 먼저 확인하고, 어긋나면 이동 전에 중단한다.
 
 이 지점부터는 기존 합본 절차(SKILL.md 7단계)가 그대로 이어진다. `assemble.py`는
 mp4가 어디서 왔는지 신경 쓰지 않는다.
