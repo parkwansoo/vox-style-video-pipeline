@@ -458,6 +458,10 @@ Flow는 브라우저 자동화라 취약하고 사람 개입이 필요하다. �
   --jobs output/<run>/flow-browser-runs/run-v01/jobs.json
 ```
 
+`prepare_flow_jobs.py`는 jobs.json을 쓰기 전에 이번 제출 클립의 패딩본·체인
+first 신선도를 자동 검사한다. 낡은 파생 자산이 있으면 하드 실패한다. 근거를
+확인하고 의도적으로 우회할 때만 `--skip-freshness`를 쓰며 경고가 남는다.
+
 어느 경로로 만들었든 산출물은 같은 `output/<run>/ch<N>/clipN.mp4`이므로
 7단계 합본은 동일하다.
 
@@ -547,6 +551,12 @@ AVOID로는 안 막힌다), 들어보고 말소리면 무음화한다(명령은 
 ```bash
 .venv/bin/python3 .claude/skills/vox-video/scripts/assemble.py --manifest output/<run>/manifest.json --out output/<run>/final.mp4
 ```
+
+`assemble.py`는 렌더 전에 manifest의 모든 클립 파일 존재 여부와 클립 오디오의
+나레이션 중복을 자동 검사한다. 누락은 하드 실패(`--allow-missing`은 부분 합본
+전용 탈출구), 중복은 하드 실패다. 근거를 확인한 의도적 우회에만
+`--skip-audio-check`를 쓴다. `--timeline-only`는 렌더가 없어 오디오 검사를
+자동 생략한다.
 
 - 자동 처리: 클립당 앞 0.25s 컷 → **클립을 나레이션 구간 길이에 맞춰 배속** →
   정규화·연결 → 나레이션 구간을 각 클립 시작점에 정확히 배치 → 클립 자체 오디오

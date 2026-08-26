@@ -58,6 +58,9 @@ import random
 import shutil
 import subprocess
 import sys
+from pathlib import Path
+
+from check_audio_dup import print_hits, run_audio_dup
 
 
 def run(cmd):
@@ -330,10 +333,52 @@ def main():
     p.add_argument("--keep-temp", action="store_true")
     p.add_argument("--timeline-only", action="store_true",
                    help="합본하지 않고 timeline.json만 갱신한다 (--out 파일은 건드리지 않는다)")
+    p.add_argument("--allow-missing", action="store_true",
+                   help="누락 클립을 경고하고 제외한 부분 합본을 허용한다")
+    p.add_argument("--skip-audio-check", action="store_true",
+                   help="클립 오디오의 나레이션 중복 검사를 생략한다")
     args = p.parse_args()
 
     with open(args.manifest, encoding="utf-8") as f:
         manifest = json.load(f)
+
+    missing = [
+        str(clip["file"])
+        for chapter in manifest.get("chapters", [])
+        for clip in chapter.get("clips", [])
+        if not os.path.isfile(clip["file"])
+    ]
+    if missing:
+        label = "[경고]" if args.allow_missing else "[실패]"
+        print(f"{label} manifest에 없는 클립 파일 {len(missing)}건:", file=sys.stderr)
+        for path in missing:
+            print(f"  {path}", file=sys.stderr)
+        if not args.allow_missing:
+            sys.exit(2)
+        missing_set = set(missing)
+        for chapter in manifest.get("chapters", []):
+            chapter["clips"] = [
+                clip for clip in chapter.get("clips", [])
+                if str(clip["file"]) not in missing_set
+            ]
+        print("[경고] --allow-missing: 위 클립을 제외하고 부분 합본을 진행합니다.",
+              file=sys.stderr)
+    if not any(chapter.get("clips") for chapter in manifest.get("chapters", [])):
+        sys.exit("합본할 수 있는 클립이 0개입니다")
+
+    if args.timeline_only:
+        print("[정보] --timeline-only: 오디오 중복 검사 생략", file=sys.stderr)
+    elif args.skip_audio_check:
+        print("[경고] 오디오 중복 검사 생략", file=sys.stderr)
+    else:
+        try:
+            hits = run_audio_dup(Path(args.manifest))
+        except (OSError, json.JSONDecodeError, ValueError) as exc:
+            sys.exit(str(exc))
+        if hits:
+            print_hits(hits)
+            sys.exit(2)
+        print("[검사] 클립 오디오 나레이션 중복 없음")
     w, h = (int(x) for x in args.size.lower().split("x"))
 
     tmp = os.path.abspath(args.out) + ".work"

@@ -33,6 +33,8 @@ from pathlib import Path
 
 from PIL import Image
 
+from check_freshness import print_findings, run_freshness
+
 JOBS_CONTRACT = "vox-flow-browser-jobs-v1"
 # Flow의 Omni가 받는 생성 길이. 우리 파이프라인은 4/6만 쓴다.
 OMNI_DURATIONS = {4, 6, 8, 10}
@@ -289,6 +291,8 @@ def main() -> int:
     p.add_argument("--run-name", default="run-v01",
                    help="같은 챕터를 다시 준비할 때 새 이름을 쓴다")
     p.add_argument("--aspect", default="9:16", choices=["16:9", "9:16"])
+    p.add_argument("--skip-freshness", action="store_true",
+                   help="제출 이미지·체인 신선도 검사를 생략한다")
     args = p.parse_args()
 
     run_dir = args.run.resolve(strict=True)
@@ -312,6 +316,20 @@ def main() -> int:
                 for n, d in specs]
     except ValueError as exc:
         sys.exit(str(exc))
+
+    if args.skip_freshness:
+        print("[경고] 신선도 검사 생략", file=sys.stderr)
+    else:
+        try:
+            findings = run_freshness(
+                run_dir, args.chapter, clip_numbers=[number for number, _ in specs]
+            )
+        except ValueError as exc:
+            sys.exit(str(exc))
+        if findings:
+            print_findings(findings)
+            return 2
+        print("[검사] 이번 제출 클립의 파생 자산 신선도 통과")
 
     # 챕터마다 따로 준비하므로 경로에 챕터를 넣는다. 안 넣으면 ch2가 ch1의
     # 매니페스트를 덮어쓰려다 fingerprint 불일치로 거부당한다.

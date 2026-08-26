@@ -102,6 +102,15 @@ def run_freshness(run: Path, chapter: int = 1, chains=None, exceptions=None,
         raise ValueError("preflight.json의 chains는 배열이어야 합니다")
     exceptions = validate_exceptions(exceptions, "freshness_exceptions")
     selected = {str(number) for number in clip_numbers} if clip_numbers is not None else None
+    if selected is not None:
+        # 부분 제출 게이트에서는 그 제출에 속하지 않는 예외를 "낡은 예외"로
+        # 오인하지 않는다. 파일명에서 클립 번호를 읽을 수 없는 예외는 안전하게
+        # 남겨 전체 검사 때 다루게 한다.
+        exceptions = [
+            exception for exception in exceptions
+            if ((match := re.match(r"clip(\d+[a-z]?)p?", exception["file"])) is None
+                or match.group(1) in selected)
+        ]
 
     ch = run / f"ch{chapter}"
     if not ch.is_dir():
