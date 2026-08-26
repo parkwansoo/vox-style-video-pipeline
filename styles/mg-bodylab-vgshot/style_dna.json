@@ -1,83 +1,85 @@
 {
-  "system_name": "MG-BODYLAB-VGSHOT",
-  "reference_note": "mg-bodylab과 동일한 레퍼런스 13장(SHA 대조 확인)을 주제를 알고 다시 역설계한 변형. 서체·팔레트·재질·배경은 관찰값 그대로, 샘플 문자열과 샘플 소재만 시리즈 주제(기미·비타민C 앰플·스피큘·순한 스킨레이어)에 맞춰 작성했다.",
-  "series_type": "vertical skincare curiosity",
-  "surface": "seamless sky-blue studio cyclorama with a soft vertical gradient, no horizon or corners",
-  "mood": [
-    "clinical",
-    "curious",
-    "hyper-close"
-  ],
-  "type_specimen": "H1 sample \"WHY MELASMA APPEARS\" in heavy rounded sans caps with a thick dark outline; a caption sample \"vitamin C\" in the same face, smaller, pinned to the lower third",
-  "type_quality": [
-    "heavy",
-    "outlined"
-  ],
-  "palette": [
-    {
-      "name": "Cyclorama Blue",
-      "hex": "#4B8CC6"
-    },
-    {
-      "name": "Skin Light",
-      "hex": "#E9D3BF"
-    },
-    {
-      "name": "Skin Mid",
-      "hex": "#C9A691"
-    },
-    {
-      "name": "Hair Umber",
-      "hex": "#6E5846"
-    },
-    {
-      "name": "Caption White",
-      "hex": "#FFFFFF"
-    }
-  ],
-  "color_rules": "Cyclorama Blue is background only and never touches a subject; Caption White is type only; skin tones carry the midground",
-  "components": [
-    "a smooth-skinned 3D figure, centred to camera",
-    "a skin macro with pores and vellus hairs",
-    "a smooth simplified cutaway of skin layers",
-    "hands entering frame to hold a prop",
-    "a glass ampoule of golden fluid at real scale",
-    "a heavy white caption block with a dark outline"
-  ],
-  "construction_logic": "soft-lit 3D renders, smooth subsurface skin, rounded simplified anatomy, shallow macro depth of field",
-  "mini_scenes": [
-    "a woman's face with soft melasma patches, caption across the lower third",
-    "golden oval needle-like spicules standing among skin pores",
-    "a smooth skin cutaway with golden droplets sinking through"
-  ],
-  "motion_signature": [
-    "slow push-in on a reacting face",
-    "macro drift across a skin surface",
-    "a cutaway peels open to the layer beneath",
-    "an ampoule drops in and settles"
-  ],
-  "stage": "the persistent background world every clip lives on - a seamless sky-blue cyclorama, softly graded, evenly lit, empty and ready for figures and props to enter",
-  "finish": [
-    "soft even studio lighting",
-    "subsurface skin shading",
-    "shallow macro depth of field",
-    "no harsh shadows",
-    "no photographic grain",
-    "no visible horizon"
-  ],
-  "confidence": {
-    "palette": "high — extract_palette.py 실측 (동일 파일이므로 mg-bodylab 값 재사용)",
-    "stage": "medium-high — 13장 중 9장에서 동일 배경",
-    "construction_logic": "high — 12장 모두에서 동일한 렌더 특성",
-    "type_specimen": "medium — 서체·배치는 관찰, 문구는 시리즈 주제로 창작",
-    "mini_scenes": "medium — 화면 형식은 관찰, 소재는 시리즈 주제로 창작",
-    "motion_signature": "low — 정지 이미지에서 추론"
+ "system_name": "MG-BODYLAB-VGSHOT",
+ "series_type": "vertical skincare curiosity",
+ "surface": "seamless sky-blue studio cyclorama with a soft vertical gradient, no horizon or corners",
+ "mood": [
+  "clinical",
+  "curious",
+  "hyper-close"
+ ],
+ "type_specimen": "H1 sample \"IT CAME BACK IN SIX MONTHS\" in heavy rounded sans caps with a thick dark outline; a caption sample \"vitamin C\" in the same face, smaller, pinned to the lower third",
+ "type_quality": [
+  "heavy",
+  "outlined"
+ ],
+ "palette": [
+  {
+   "name": "Cyclorama Blue",
+   "hex": "#4B8CC6"
   },
-  "rejected": [
-    "개미 / 유리병 / 스푼 / 나무 테이블 — 각 한 장에만 등장하는 소재",
-    "도시 빌딩·화염·폭발 배경 — 한 장뿐이고 시그니처 배경과 상반",
-    "티셔츠에 인쇄된 브랜드 로고 — 로고는 시각 시스템이 아니며 재현 대상이 아님",
-    "치과 매크로 이미지 1장(제3자 워터마크) — 렌더 계열이 달라 아웃라이어로 제외",
-    "원본 DNA의 wet pinks·follicles 묘사 — 광고용으로 과하게 생생해 순한 단면으로 교체 (사용자 요청)"
-  ]
+  {
+   "name": "Skin Light",
+   "hex": "#E9D3BF"
+  },
+  {
+   "name": "Skin Mid",
+   "hex": "#C9A691"
+  },
+  {
+   "name": "Hair Umber",
+   "hex": "#6E5846"
+  },
+  {
+   "name": "Caption White",
+   "hex": "#FFFFFF"
+  }
+ ],
+ "color_rules": "Cyclorama Blue is background only and never touches a subject; Caption White is type only; skin tones carry the midground",
+ "components": [
+  "a stylised 3D character face caught mid-reaction",
+  "a skin macro with pores and a tight flat surface",
+  "a skin cutaway whose dermis is a clear glass sphere lattice",
+  "hands entering frame to hold a prop",
+  "upright yellow spicules, needle-thin with sharp pointed tips",
+  "a frosted glass squircle bottle of yellow serum, champagne-gold pump",
+  "a heavy white caption block with a dark outline"
+ ],
+ "construction_logic": "stylised 3D character renders, never photographic - smooth subsurface skin, sculpted hair as soft masses, rounded simplified anatomy",
+ "mini_scenes": [
+  "yellow pointed spicules standing between pores",
+  "melasma patches fading pale on a cheekbone",
+  "yellow serum sinking through the sphere lattice"
+ ],
+ "motion_signature": [
+  "slow push-in on a reacting 3D face",
+  "spicules press in and part the surface",
+  "a cutaway peels open to the sphere lattice",
+  "yellow serum descends through the lattice"
+ ],
+ "stage": "a seamless sky-blue cyclorama, softly graded, evenly lit, empty and ready for figures and props to enter",
+ "finish": [
+  "soft even studio lighting",
+  "shallow macro depth of field",
+  "no harsh shadows",
+  "no photographic realism or photo textures",
+  "no wet pink flesh in the cutaway"
+ ],
+ "confidence": {
+  "palette": "high — extract_palette.py 실측 (동일 레퍼런스 13장이므로 mg-bodylab 값 재사용)",
+  "construction_logic": "high — 13장 전체에서 관찰 (mg-bodylab 유지)",
+  "stage": "medium-high — 13장 중 9장에서 동일 배경",
+  "type_specimen": "medium — 서체·배치는 관찰, 문구는 이 편 대본의 훅으로 창작",
+  "mini_scenes": "medium — 화면 형식은 관찰, 소재는 이 편 주제로 창작",
+  "motion_signature": "low — 정지 이미지에서 추론 (mg-bodylab 계승)",
+  "components": "high — 제품 실물 사진과 시리즈 프레임 2장으로 교정 (프로스티드 각진 병·골드 펌프·3D 캐릭터 렌더). 스피큘만 medium — 사용자 지시로 넣은 소재이고 레퍼런스에 실물 표본이 없다"
+ },
+ "rejected": [
+  "v1의 '골든 액체 유리 앰플' 소품 — 실물 제품은 앰플이 아니라 프로스티드 각진 유리병 + 샴페인골드 펌프다 (assets/products/vgshot/reference.png·SPEC.md 실측). 시트 샘플이 클립으로 유출되는 성질 때문에 앰플을 두면 컷마다 잘못된 병이 나온다 (2026-08-26)",
+  "v1의 포토리얼 인물·피부 매크로 — Zack D. Films 계열은 스타일화된 3D 캐릭터다. construction_logic에 'never photographic'을 넣고 시리즈 프레임 2장을 --ref로 첨부해 교정 (faceoil 2026-08-10에서 검증된 경로)",
+  "v1의 '분홍 살결 + 혈관 피부 단면' — 진피를 투명 유리 구슬 격자로 바꾸기로 한 결정 반영 (TODO 2026-08-06). 시트가 구슬을 보여주면 클립마다 넣던 CELLS 교정 블록이 불필요해진다",
+  "v1의 'a smooth 3D figure centred to camera' — mg-bodylab에서 전 클립 정면 고착을 유발해 제외하고 'caught mid-reaction'으로 교체 (faceoil 2026-08-10)",
+  "faceoil의 'dry flaking scales' 피부 매크로 — 이 편의 장벽은 건조·각질 부스러기가 아니라 성분을 막는 표면층이라 'tight flat surface layer'로 교체",
+  "faceoil의 오일 방울·피펫 소재 (mini_scenes·motion_signature) — 이 편의 제품은 펌프 세럼이고 전달 기전이 스피큘이라 제외",
+  "중복 서술 압축 (2026-08-26): finish의 'subsurface skin shading'·'no visible horizon'은 각각 construction_logic·surface와 중복이라 제거, stage의 '지속 배경 세계' 수식은 surface와 중복이라 제거. 프롬프트 분량 경고(2400자) 대응이며 새로 약화시킨 지시는 없다"
+ ]
 }

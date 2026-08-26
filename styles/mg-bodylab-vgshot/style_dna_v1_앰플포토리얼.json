@@ -1,0 +1,83 @@
+{
+  "system_name": "MG-BODYLAB-VGSHOT",
+  "reference_note": "mg-bodylab과 동일한 레퍼런스 13장(SHA 대조 확인)을 주제를 알고 다시 역설계한 변형. 서체·팔레트·재질·배경은 관찰값 그대로, 샘플 문자열과 샘플 소재만 시리즈 주제(기미·비타민C 앰플·스피큘·순한 스킨레이어)에 맞춰 작성했다.",
+  "series_type": "vertical skincare curiosity",
+  "surface": "seamless sky-blue studio cyclorama with a soft vertical gradient, no horizon or corners",
+  "mood": [
+    "clinical",
+    "curious",
+    "hyper-close"
+  ],
+  "type_specimen": "H1 sample \"WHY MELASMA APPEARS\" in heavy rounded sans caps with a thick dark outline; a caption sample \"vitamin C\" in the same face, smaller, pinned to the lower third",
+  "type_quality": [
+    "heavy",
+    "outlined"
+  ],
+  "palette": [
+    {
+      "name": "Cyclorama Blue",
+      "hex": "#4B8CC6"
+    },
+    {
+      "name": "Skin Light",
+      "hex": "#E9D3BF"
+    },
+    {
+      "name": "Skin Mid",
+      "hex": "#C9A691"
+    },
+    {
+      "name": "Hair Umber",
+      "hex": "#6E5846"
+    },
+    {
+      "name": "Caption White",
+      "hex": "#FFFFFF"
+    }
+  ],
+  "color_rules": "Cyclorama Blue is background only and never touches a subject; Caption White is type only; skin tones carry the midground",
+  "components": [
+    "a smooth-skinned 3D figure, centred to camera",
+    "a skin macro with pores and vellus hairs",
+    "a smooth simplified cutaway of skin layers",
+    "hands entering frame to hold a prop",
+    "a glass ampoule of golden fluid at real scale",
+    "a heavy white caption block with a dark outline"
+  ],
+  "construction_logic": "soft-lit 3D renders, smooth subsurface skin, rounded simplified anatomy, shallow macro depth of field",
+  "mini_scenes": [
+    "a woman's face with soft melasma patches, caption across the lower third",
+    "golden oval needle-like spicules standing among skin pores",
+    "a smooth skin cutaway with golden droplets sinking through"
+  ],
+  "motion_signature": [
+    "slow push-in on a reacting face",
+    "macro drift across a skin surface",
+    "a cutaway peels open to the layer beneath",
+    "an ampoule drops in and settles"
+  ],
+  "stage": "the persistent background world every clip lives on - a seamless sky-blue cyclorama, softly graded, evenly lit, empty and ready for figures and props to enter",
+  "finish": [
+    "soft even studio lighting",
+    "subsurface skin shading",
+    "shallow macro depth of field",
+    "no harsh shadows",
+    "no photographic grain",
+    "no visible horizon"
+  ],
+  "confidence": {
+    "palette": "high — extract_palette.py 실측 (동일 파일이므로 mg-bodylab 값 재사용)",
+    "stage": "medium-high — 13장 중 9장에서 동일 배경",
+    "construction_logic": "high — 12장 모두에서 동일한 렌더 특성",
+    "type_specimen": "medium — 서체·배치는 관찰, 문구는 시리즈 주제로 창작",
+    "mini_scenes": "medium — 화면 형식은 관찰, 소재는 시리즈 주제로 창작",
+    "motion_signature": "low — 정지 이미지에서 추론"
+  },
+  "rejected": [
+    "개미 / 유리병 / 스푼 / 나무 테이블 — 각 한 장에만 등장하는 소재",
+    "도시 빌딩·화염·폭발 배경 — 한 장뿐이고 시그니처 배경과 상반",
+    "티셔츠에 인쇄된 브랜드 로고 — 로고는 시각 시스템이 아니며 재현 대상이 아님",
+    "치과 매크로 이미지 1장(제3자 워터마크) — 렌더 계열이 달라 아웃라이어로 제외",
+    "원본 DNA의 wet pinks·follicles 묘사 — 광고용으로 과하게 생생해 순한 단면으로 교체 (사용자 요청)"
+  ]
+}
