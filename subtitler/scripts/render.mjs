@@ -31,10 +31,18 @@ const captionsPath = path.resolve(runDir, arg("--captions", "captions.json"));
 const presetName = arg("--preset", "vox-기본");
 const crf = Number(arg("--crf", 14));
 const codec = arg("--codec", "h264");
+// 훅 배율 — export_ratios가 문구 길이로 계산해 넘긴다. headline.json에
+// fontScale을 직접 적었으면 그쪽이 이긴다 (props.mjs 참조).
+const headlineScaleArg = arg("--headline-scale", null);
+const headlineScale = headlineScaleArg === null ? null : Number(headlineScaleArg);
+if (headlineScale !== null && !(Number.isFinite(headlineScale) && headlineScale > 0)) {
+  console.error(`--headline-scale 값이 잘못됐습니다: ${headlineScaleArg}`);
+  process.exit(1);
+}
 
 // ①② 입력 영상 실측 + props 구성 (prepare-studio.mjs와 공유 — props.mjs)
 const { inputProps, video, captions, ratio } = buildInputProps({
-  src, captionsPath, presetName, asset: "bg.mp4",
+  src, captionsPath, presetName, asset: "bg.mp4", headlineScale,
 });
 const { width, height, fps, durationMs } = video;
 

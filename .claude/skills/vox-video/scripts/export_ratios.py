@@ -42,6 +42,9 @@ SKILL = HERE.parent
 PROJECT = SKILL.parent.parent.parent
 CONFIG = SKILL / "config" / "video-ratios.json"
 RENDER_MJS = PROJECT / "subtitler" / "scripts" / "render.mjs"
+# 훅 자동 배율의 하한. 이보다 내리면 헤드가 자막 크기에 근접해 위계가 뒤집힌다
+# (2026-08-28 실측: 0.86에서 16:9의 헤드/자막 비가 0.99가 됐다).
+HOOK_SCALE_FLOOR = 0.90
 METRICS = HERE / "caption-font-metrics.json"
 PROPS_MJS = PROJECT / "subtitler" / "scripts" / "props.mjs"
 
@@ -178,10 +181,12 @@ def pad_ratio(video: Path, audio_src: Path | None, out: Path, src: dict,
 
 
 # ── ③ 자막 재렌더 ───────────────────────────────────────────────────────────
-def render_captions(run_dir: Path, rel_in: str, rel_out: str, crf: int, codec: str, preset: str) -> None:
+def render_captions(run_dir: Path, rel_in: str, rel_out: str, crf: int, codec: str, preset: str,
+                    hook_scale: float = 1.0) -> None:
     cmd = ["node", str(RENDER_MJS), "--run", str(run_dir),
            "--video", rel_in, "--out", rel_out,
-           "--crf", str(crf), "--codec", codec, "--preset", preset]
+           "--crf", str(crf), "--codec", codec, "--preset", preset,
+           "--headline-scale", f"{hook_scale:.4f}"]
     r = subprocess.run(cmd, text=True)
     if r.returncode != 0:
         die(f"자막 렌더 실패: {rel_out} (render.mjs exit {r.returncode})")
@@ -266,12 +271,50 @@ def preflight(run_dir, want, cfg, preset_name, src, hook_cover_max, strict):
     head = json.loads(head_p.read_text(encoding="utf-8")) if head_p.exists() else {}
     hook_lines = (head.get("hook") or {}).get("lines") or []
     label_text = (head.get("label") or {}).get("text") or ""
-    # 편별 훅 배율 (props.mjs loadHeadline과 같은 규칙) — 없으면 1
+    # 편별 훅 배율. headline.json에 fontScale을 직접 적었으면 그 값이 최우선이고,
+    # 없으면 문구 길이에서 **자동 산출**한다 (편마다 문구가 달라 고정값이 안 맞는다).
     _fs = (head.get("hook") or {}).get("fontScale")
-    hook_scale = float(_fs) if isinstance(_fs, (int, float)) and _fs > 0 else 1.0
+    explicit_scale = float(_fs) if isinstance(_fs, (int, float)) and _fs > 0 else None
 
     sizes = [(cfg["ratios"][r]["width"], cfg["ratios"][r]["height"]) for r in want]
     resolved = resolve_presets(preset_name, sizes)
+
+    metrics_for = lambda pr: metrics_all.get(pr["fontKey"])
+    hook_em_all = 0.0
+    if hook_lines:
+        m0 = metrics_for(resolved[0]["preset"])
+        if m0:
+            hook_em_all = max(em_width(t, m0) for t in hook_lines)
+
+    hook_scale = explicit_scale if explicit_scale is not None else 1.0
+    auto_scale = None
+    if hook_lines and explicit_scale is None and hook_em_all:
+        # 각 비율에서 허용되는 최대 배율을 풀고 가장 빡빡한 것을 택한다.
+        limits = []
+        for r, (W, H), res in zip(want, sizes, resolved):
+            pr = res["preset"]
+            base_px = pr["headlineFontSizePct"] / 100 * H       # 배율 1일 때 글자 크기
+            if base_px <= 0:
+                continue
+            fw, _fh = fit_size(src["width"], src["height"], W, H)
+            safe_w = W * (100 - 2 * pr["safeMarginPct"]) / 100
+            safe_t = pr["safeMarginPct"] / 100 * H
+            limits.append(safe_w / (hook_em_all * base_px))                    # 가로 폭
+            if fw:
+                limits.append(hook_cover_max * fw / (hook_em_all * base_px))   # 영상 폭 대비
+            # 세로: top = YPct*H - (줄수 × px × 1.2)/2 ≥ 안전선
+            head_top = pr["headlineYPct"] / 100 * H
+            denom = len(hook_lines) * base_px * 1.2 / 2
+            if denom > 0:
+                limits.append((head_top - safe_t) / denom)
+        if limits:
+            auto_scale = math.floor(min(1.0, min(limits)) * 100) / 100
+            if auto_scale < HOOK_SCALE_FLOOR:
+                die(f"훅이 너무 길다 — 배율 {auto_scale:.2f}까지 줄여야 들어가는데 "
+                    f"하한은 {HOOK_SCALE_FLOOR:.2f}다 (그 아래로 내리면 헤드가 자막보다 "
+                    f"작아져 훅 구실을 못 한다). 문구를 줄이거나 hook.lines의 줄 나눔을 "
+                    f"바꾸세요 — 현재 {len(hook_lines)}줄, 최장 {hook_em_all:.2f}em")
+            hook_scale = auto_scale
 
     fails, warns, rows = [], [], []
     for r, (W, H), res in zip(want, sizes, resolved):
@@ -342,9 +385,14 @@ def preflight(run_dir, want, cfg, preset_name, src, hook_cover_max, strict):
             "(caption-preset.json의 ratioOverrides)")
     if warns and strict:
         die("--strict: 경고를 실패로 처리합니다")
+    if hook_lines:
+        if explicit_scale is not None:
+            print(f"   훅 배율 {explicit_scale:.2f} (headline.json에 명시)")
+        elif auto_scale is not None and auto_scale < 1.0:
+            print(f"   훅 배율 {auto_scale:.2f} 자동 적용 — 문구가 길어 그만큼 줄였다")
     if not warns:
         print("   → 전부 통과")
-    return rows
+    return hook_scale
 
 
 # ── main ────────────────────────────────────────────────────────────────────
@@ -410,9 +458,10 @@ def main() -> int:
           f"자막={'끔' if a.no_captions else a.preset}  비율={want}")
 
     # ⓪ 글자 기하 — 렌더보다 먼저, 가장 싸다
+    hook_scale = 1.0
     if not a.no_captions:
         print("\n[1/5] 글자 기하 검증")
-        preflight(run_dir, want, cfg, a.preset, src, a.hook_cover_max, a.strict)
+        hook_scale = preflight(run_dir, want, cfg, a.preset, src, a.hook_cover_max, a.strict)
         if a.check_only:
             print("\n[완료] --check-only: 렌더하지 않고 끝냅니다")
             return 0
@@ -457,7 +506,8 @@ def main() -> int:
         else:
             print(f"[4/5] {ratio} 자막·헤드카피 재렌더")
             render_captions(run_dir, f"{a.outdir}/.pad_{slug}.mp4",
-                            f"{a.outdir}/final_{slug}.mp4", a.crf, a.codec, a.preset)
+                            f"{a.outdir}/final_{slug}.mp4", a.crf, a.codec, a.preset,
+                            hook_scale)
 
         print(f"[5/5] {ratio} 검증")
         results[ratio] = verify_output(final, video, cw, ch, fw, fh, points, tmp)
