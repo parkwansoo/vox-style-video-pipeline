@@ -157,7 +157,9 @@ def main() -> None:
         return unicodedata.normalize("NFC", s)
 
     suffix = nfc(cfg.get("output_suffix", "_고지"))
-    srcs = sorted(q for q in exports.glob("final_*.mp4") if suffix not in nfc(q.stem))
+    # `.prev`는 export_ratios가 재실행 때 남기는 직전본 백업이다 — 대상이 아니다.
+    srcs = sorted(q for q in exports.glob("final_*.mp4")
+                  if suffix not in nfc(q.stem) and not nfc(q.stem).endswith(".prev"))
     if want:
         srcs = [q for q in srcs if nfc(q.stem).replace("final_", "") in want]
     if not srcs:
@@ -206,7 +208,12 @@ def main() -> None:
             look = src if a.sample_only else dst
             cw = int(w * cfg["check"]["cropWidthPct"] / 100)
             chh = int(cfg["check"]["cropHeightPx"] * max(1.0, w / 1080))
-            for t in cfg["check"]["timepoints"]:
+            # 편마다 길이가 달라 config의 고정 시점이 끝을 넘길 수 있다. 넘기면
+            # ffmpeg가 프레임을 안 내면서 exit 0을 준다 — 길이에 맞춰 당긴다.
+            dur = float(probe(src, "format=duration"))
+            times = sorted({round(min(float(t), dur - 0.3), 2)
+                            for t in cfg["check"]["timepoints"] if float(t) >= 0})
+            for t in times:
                 o = tmp / f"chk_{slug}_{t}.png"
                 vf = (f"[0:v][1:v]overlay=x=W-w-{ox}:y=H-h-{oy}[o];"
                       f"[o]crop={cw}:{chh}:{w-cw}:{h-chh}[c]") if a.sample_only else None
@@ -217,6 +224,10 @@ def main() -> None:
                     cmd += ["-vf", f"crop={cw}:{chh}:{w-cw}:{h-chh}"]
                 cmd += ["-frames:v", "1", str(o), "-y"]
                 run(cmd, label=f"검수 크롭({slug} {t}s)")
+                # ffmpeg는 프레임을 못 뽑아도 exit 0을 준다 — 산출물로 확인한다
+                # (CLAUDE.md 규율 ⑤: 판정 도구의 판정을 실물로 검증한다).
+                if not o.is_file() or o.stat().st_size == 0:
+                    die(f"{slug} {t}s 프레임이 안 나왔다 (영상 길이 {dur:.2f}s)")
                 sheet_rows.append((f"{slug}  {t}s  ({s['size']}px, 그림자 "
                                    f"{int(float(s['shadowAlpha'])*100)}%)", o))
 
