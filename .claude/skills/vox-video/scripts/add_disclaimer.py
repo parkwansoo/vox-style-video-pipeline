@@ -211,8 +211,12 @@ def main() -> None:
             # 편마다 길이가 달라 config의 고정 시점이 끝을 넘길 수 있다. 넘기면
             # ffmpeg가 프레임을 안 내면서 exit 0을 준다 — 길이에 맞춰 당긴다.
             dur = float(probe(src, "format=duration"))
-            times = sorted({round(min(float(t), dur - 0.3), 2)
+            times = sorted({max(0.0, round(min(float(t), dur - 0.3), 2))
                             for t in cfg["check"]["timepoints"] if float(t) >= 0})
+            if not times:
+                # 조용히 시트 없이 끝나면 "검수했다"는 착각을 남긴다.
+                die(f"{slug}: 검수 시점이 하나도 없다 (영상 {dur:.2f}s, config "
+                    f"timepoints={cfg['check']['timepoints']}) — 값을 확인할 것")
             for t in times:
                 o = tmp / f"chk_{slug}_{t}.png"
                 vf = (f"[0:v][1:v]overlay=x=W-w-{ox}:y=H-h-{oy}[o];"
@@ -223,6 +227,9 @@ def main() -> None:
                 else:
                     cmd += ["-vf", f"crop={cw}:{chh}:{w-cw}:{h-chh}"]
                 cmd += ["-frames:v", "1", str(o), "-y"]
+                # 이전 실행의 프레임이 남아 있으면 이번 실패를 가린다 — 먼저 지운다
+                # (코덱스 리뷰 2026-08-28 지적).
+                o.unlink(missing_ok=True)
                 run(cmd, label=f"검수 크롭({slug} {t}s)")
                 # ffmpeg는 프레임을 못 뽑아도 exit 0을 준다 — 산출물로 확인한다
                 # (CLAUDE.md 규율 ⑤: 판정 도구의 판정을 실물로 검증한다).

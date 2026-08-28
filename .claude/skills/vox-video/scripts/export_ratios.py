@@ -269,12 +269,22 @@ def preflight(run_dir, want, cfg, preset_name, src, hook_cover_max, strict):
     metrics_all = json.loads(METRICS.read_text(encoding="utf-8"))
     caps = json.loads(caps_p.read_text(encoding="utf-8"))
     head = json.loads(head_p.read_text(encoding="utf-8")) if head_p.exists() else {}
-    hook_lines = (head.get("hook") or {}).get("lines") or []
+    # props.mjs loadHeadline과 같은 규칙: 최상위 lines만 있는 옛 형식도 훅으로 읽는다.
+    # 여기서 갈리면 렌더러는 그리는데 검사는 "훅 없음"으로 통과한다.
+    _hook = head.get("hook") if isinstance(head.get("hook"), dict) else head
+    hook_lines = _hook.get("lines") or []
     label_text = (head.get("label") or {}).get("text") or ""
     # 편별 훅 배율. headline.json에 fontScale을 직접 적었으면 그 값이 최우선이고,
     # 없으면 문구 길이에서 **자동 산출**한다 (편마다 문구가 달라 고정값이 안 맞는다).
-    _fs = (head.get("hook") or {}).get("fontScale")
-    explicit_scale = float(_fs) if isinstance(_fs, (int, float)) and _fs > 0 else None
+    _fs = _hook.get("fontScale")
+    if _fs is None:
+        explicit_scale = None
+    elif isinstance(_fs, bool) or not isinstance(_fs, (int, float)) or _fs <= 0:
+        # 조용히 자동으로 넘어가면 "고정했다고 믿었는데 값이 달랐다"가 된다.
+        die(f"headline.json의 hook.fontScale이 잘못됐다: {_fs!r} — 0보다 큰 숫자여야 "
+            f"한다 (문자열·불리언 불가). 자동 계산에 맡기려면 키를 지운다")
+    else:
+        explicit_scale = float(_fs)
 
     sizes = [(cfg["ratios"][r]["width"], cfg["ratios"][r]["height"]) for r in want]
     resolved = resolve_presets(preset_name, sizes)
@@ -302,11 +312,19 @@ def preflight(run_dir, want, cfg, preset_name, src, hook_cover_max, strict):
             limits.append(safe_w / (hook_em_all * base_px))                    # 가로 폭
             if fw:
                 limits.append(hook_cover_max * fw / (hook_em_all * base_px))   # 영상 폭 대비
-            # 세로: top = YPct*H - (줄수 × px × 1.2)/2 ≥ 안전선
+            # 세로 — Headline.tsx는 등장 때 HOOK_SLIDE_PX만큼 위에서 내려오고
+            # 획·그림자가 레이아웃 박스 밖에 그려진다. 그만큼을 안전선에 더한다.
+            # 획은 레이아웃 박스 밖에 그려지므로 그만큼 안전선을 당긴다
+            # (props.mjs와 같은 높이 비례 보정). 등장 슬라이드(HOOK_SLIDE_PX 18px)는
+            # 더하지 않는다 — 30프레임 실측에서 글자가 가장 높은 순간엔 페이드인
+            # 때문에 거의 투명해 화면에 나타나지 않았다 (기미 오일 1:1: 정지 계산
+            # 100px, 실측 최상단 104px). 2026-08-28.
+            pad_v = max(1, round((pr.get("headlineStrokeWidthPx") or 6) * H / 1920))
             head_top = pr["headlineYPct"] / 100 * H
             denom = len(hook_lines) * base_px * 1.2 / 2
             if denom > 0:
-                limits.append((head_top - safe_t) / denom)
+                limits.append((head_top - safe_t - pad_v) / denom)          # 상단
+                limits.append((H - safe_t - pad_v - head_top) / denom)      # 하단
         if limits:
             auto_scale = math.floor(min(1.0, min(limits)) * 100) / 100
             if auto_scale < HOOK_SCALE_FLOOR:
@@ -346,10 +364,18 @@ def preflight(run_dir, want, cfg, preset_name, src, hook_cover_max, strict):
         if hook_lines:
             if hook_w > safe_w:
                 fails.append(f"{r}: 훅 최장줄 {hook_w:.0f}px > 가용 {safe_w:.0f}px — 가로로 잘린다")
-            if top < safe_t:
-                fails.append(f"{r}: 훅 상단 {top:.0f}px < 안전선 {safe_t:.0f}px — 윗줄이 잘린다")
-            if top + block > H - safe_t:
-                fails.append(f"{r}: 훅 하단 {top + block:.0f}px > {H - safe_t:.0f}px — 아랫줄이 잘린다")
+            # 획은 레이아웃 박스 밖에 그려지므로 그만큼 안전선을 당긴다
+            # (props.mjs와 같은 높이 비례 보정). 등장 슬라이드(HOOK_SLIDE_PX 18px)는
+            # 더하지 않는다 — 30프레임 실측에서 글자가 가장 높은 순간엔 페이드인
+            # 때문에 거의 투명해 화면에 나타나지 않았다 (기미 오일 1:1: 정지 계산
+            # 100px, 실측 최상단 104px). 2026-08-28.
+            pad_v = max(1, round((pr.get("headlineStrokeWidthPx") or 6) * H / 1920))
+            if top - pad_v < safe_t:
+                fails.append(f"{r}: 훅 상단 {top - pad_v:.0f}px < 안전선 {safe_t:.0f}px — "
+                             f"윗줄이 잘린다 (등장 슬라이드·획 {pad_v:.0f}px 포함)")
+            if top + block + pad_v > H - safe_t:
+                fails.append(f"{r}: 훅 하단 {top + block + pad_v:.0f}px > {H - safe_t:.0f}px — "
+                             f"아랫줄이 잘린다 (등장 슬라이드·획 {pad_v:.0f}px 포함)")
             if cover > hook_cover_max:
                 warns.append(f"{r}: 훅이 원본 영상 폭의 {cover*100:.0f}% (기준 {hook_cover_max*100:.0f}%) — 훅 구간을 가린다")
             if pr["headlineFontSizePct"] * hook_scale <= pr["fontSizePct"]:

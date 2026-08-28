@@ -113,6 +113,15 @@ function loadHighlights(captionsPath) {
 // 줄바꿈은 hook.lines 배열이 결정한다. 화면 폭을 넘기면 잘리므로 한 줄 길이는
 // caption-font-metrics.json으로 미리 확인한다 (720폭·안전여백 6%에서 실효 634px:
 // 훅 6.0%=76.8px이면 상한 8.25em, 라벨 3.13%=40px이면 박스 패딩 포함 14.8em).
+// 배율 공통 검증 — 없으면 null, 있는데 잘못됐으면 던진다.
+function validScale(v, where) {
+  if (v === undefined || v === null) return null;
+  if (typeof v !== "number" || !Number.isFinite(v) || v <= 0) {
+    throw new Error(`${where}이(가) 잘못됐습니다: ${JSON.stringify(v)} — 0보다 큰 숫자여야 합니다`);
+  }
+  return v;
+}
+
 function loadHeadline(captionsPath) {
   const empty = {
     lines: [], startMs: 0, endMs: 0, fontScale: null,
@@ -127,8 +136,11 @@ function loadHeadline(captionsPath) {
     lines: Array.isArray(hook.lines) ? hook.lines : [],
     startMs: Number.isFinite(hook.startMs) ? hook.startMs : 0,
     endMs: Number.isFinite(hook.endMs) ? hook.endMs : 0,
-    // null = 지정 안 함(자동 계산에 맡긴다). 0 이하는 무시한다.
-    fontScale: Number.isFinite(hook.fontScale) && hook.fontScale > 0 ? hook.fontScale : null,
+    // null = 지정 안 함(자동 계산에 맡긴다). 값이 있는데 잘못됐으면 조용히 넘기지
+    // 않고 던진다 — "고정했다고 믿었는데 값이 달랐다"가 가장 찾기 어렵다.
+    // (export_ratios.py의 판정 기준과 같아야 한다. 예전엔 파이썬이 true를 1로,
+    //  JS는 무시해서 두 경로가 갈렸다 — 코덱스 리뷰 2026-08-28 지적)
+    fontScale: validScale(hook.fontScale, "headline.json의 hook.fontScale"),
     labelText: typeof label.text === "string" ? label.text : "",
     labelStartMs: Number.isFinite(label.startMs) ? label.startMs : 0,
     labelEndMs: Number.isFinite(label.endMs) ? label.endMs : 0,
@@ -156,7 +168,8 @@ export function buildInputProps({ src, captionsPath, presetName, asset, headline
     // 헤드 카피 — headline.json이 없으면 훅·라벨 문구가 다 비어 레이어 자체가 안 붙는다.
     // px 단위 값들은 자막 외곽선과 같은 규칙으로 높이 비례 보정한다 (프리셋 기준 1920px).
     헤드라인문구: hd.lines, 헤드라인시작ms: hd.startMs, 헤드라인종료ms: hd.endMs,
-    헤드라인크기: (p.headlineFontSizePct ?? 6.0) * (hd.fontScale ?? headlineScale ?? 1),
+    헤드라인크기: (p.headlineFontSizePct ?? 6.0)
+      * (hd.fontScale ?? validScale(headlineScale, "--headline-scale") ?? 1),
     헤드라인색: p.headlineColor ?? "#FFFFFF",
     헤드라인강조색: p.headlineHighlightColor ?? p.highlightColor1,
     헤드라인강조단어: hd.강조단어,
