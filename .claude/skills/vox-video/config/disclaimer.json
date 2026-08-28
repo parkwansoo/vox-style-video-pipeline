@@ -1,0 +1,43 @@
+{
+ "_주석": [
+  "고지 문구 정본. 9.5단계 add_disclaimer.py가 읽는다.",
+  "",
+  "왜 비율마다 값이 다른가 (2026-08-28 실측, 브이지샷 편):",
+  "  ① 크기 — 캔버스 폭 기준으로 잡으면 짧은 캔버스에서 커 보인다. 자막이",
+  "     비율마다 줄어드는 비(9:16=91px → 4:5=73 → 1:1=68 → 16:9=72)를 따랐고,",
+  "     사용자 눈검수로 4:5·1:1을 1px씩 더 내렸다.",
+  "  ② 그림자 — 9:16 외 비율은 우측이 블러 패딩이라 문구 자리 배경이 한 문장",
+  "     안에서 갈린다(실측 4:5 좌170/우122, 1:1 좌168/우107, 16:9 좌132/우103).",
+  "     평평한 회색 하나로는 이 차이를 못 넘는다 — 밝게 하면 밝은 쪽에서,",
+  "     어둡게 하면 어두운 쪽에서 사라진다. 그림자가 배경만 눌러 대비를 만든다.",
+  "     9:16은 배경이 균일(172)해서 그림자가 필요 없다.",
+  "",
+  "다른 스타일(배경색이 다른 편)로 갈 때는 --check 시트를 보고 재보정한다.",
+  "목표는 '시선이 쉽게 가지 않되 읽히는' 상태 — 배경 대비 약 -28."
+ ],
+ "text": "*개인에 따른 차이가 있을 수 있습니다.",
+ "font": "subtitler/public/_fonts/PretendardVariable.ttf",
+ "output_suffix": "_고지",
+ "crf": 14,
+ "preset": "medium",
+ "defaults": {
+  "color": "#8F8F8F",
+  "alpha": 1.0,
+  "shadowAlpha": 0.35,
+  "shadowBlur": 1.2,
+  "shadowOffset": 1,
+  "marginRight": 30,
+  "marginBottom": 14
+ },
+ "ratios": {
+  "9x16": {"size": 27, "alpha": 0.80, "shadowAlpha": 0.0, "marginRight": 30, "marginBottom": 14},
+  "4x5":  {"size": 21, "marginRight": 30, "marginBottom": 8},
+  "1x1":  {"size": 19, "marginRight": 30, "marginBottom": 8},
+  "16x9": {"size": 21, "marginRight": 53, "marginBottom": 25}
+ },
+ "check": {
+  "timepoints": [0.5, 25.0, 45.5],
+  "cropWidthPct": 80,
+  "cropHeightPx": 90
+ }
+}
