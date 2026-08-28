@@ -19,7 +19,7 @@
 사용법:
   .venv/bin/python3 .claude/skills/vox-video/scripts/export_ratios.py \
       --run output/20260813-melasma-oil \
-      --video final.mp4 --audio "0818 (1).mp4"
+      --video final_wm.mp4 --audio "0818 (1).mp4"   # 워터마크 제거본을 준다
 
   # 자막 없이 패딩만
   ... --no-captions

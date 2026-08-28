@@ -780,7 +780,8 @@ node subtitler/scripts/render.mjs --run output/<run> --video final_wm.mp4
 ### 권장 경로 — 캡컷에 자막 없는 영상을 넣는다
 
 ```bash
-# 캡컷에는 final.mp4(자막 없음)를 넣고 BGM만 씌워 내보낸다 → 그 파일 하나만 지정
+# 캡컷에는 final_wm.mp4(자막 없음·워터마크 제거본)를 넣고 BGM만 씌워 내보낸다
+# → 그 파일 하나만 지정
 .venv/bin/python3 .claude/skills/vox-video/scripts/export_ratios.py \
   --run output/<run> --video "<캡컷_BGM본>.mp4"
 
@@ -790,14 +791,19 @@ node subtitler/scripts/render.mjs --run output/<run> --video final_wm.mp4
 ```
 
 소스가 하나라 **캡컷에서 자르기·순서 변경을 해도 된다.** BGM이 없는 편이면
-`--video final.mp4`만 주면 된다.
+`--video final_wm.mp4`만 주면 된다.
+
+⚠ **`final.mp4`가 아니라 `final_wm.mp4`다.** `final.mp4`는 7.2단계(워터마크
+제거) **전** 파일이라 Flow 클립이 하나라도 섞였으면 우하단에 4각별이 살아 있다.
+그대로 캡컷에 넣으면 별이 박힌 채 납품된다. 전부 API(omni)로만 만든 편은
+워터마크가 없으므로 `final.mp4`를 써도 같다 — 헷갈리면 `final_wm.mp4`가 항상 안전하다.
 
 ### 대체 경로 — 자막이 이미 구워진 캡컷본밖에 없을 때
 
 자막본에 BGM을 씌워버렸다면 영상과 소리를 나눠서 가져온다.
 
 ```bash
-... --run output/<run> --video final.mp4 --audio "0818 (1).mp4"
+... --run output/<run> --video final_wm.mp4 --audio "0818 (1).mp4"
 ```
 
 스크립트가 두 소스를 여러 지점 PSNR로 대조해 같은 타임라인인지 먼저 확인하고,
@@ -834,7 +840,7 @@ node subtitler/scripts/render.mjs --run output/<run> --video final_wm.mp4
 
 ```bash
 .venv/bin/python3 .claude/skills/vox-video/scripts/export_ratios.py \
-  --run output/<run> --video final.mp4 --check-only
+  --run output/<run> --video final_wm.mp4 --check-only
 ```
 
 ```
