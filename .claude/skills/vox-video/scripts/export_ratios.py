@@ -266,6 +266,9 @@ def preflight(run_dir, want, cfg, preset_name, src, hook_cover_max, strict):
     head = json.loads(head_p.read_text(encoding="utf-8")) if head_p.exists() else {}
     hook_lines = (head.get("hook") or {}).get("lines") or []
     label_text = (head.get("label") or {}).get("text") or ""
+    # 편별 훅 배율 (props.mjs loadHeadline과 같은 규칙) — 없으면 1
+    _fs = (head.get("hook") or {}).get("fontScale")
+    hook_scale = float(_fs) if isinstance(_fs, (int, float)) and _fs > 0 else 1.0
 
     sizes = [(cfg["ratios"][r]["width"], cfg["ratios"][r]["height"]) for r in want]
     resolved = resolve_presets(preset_name, sizes)
@@ -292,7 +295,7 @@ def preflight(run_dir, want, cfg, preset_name, src, hook_cover_max, strict):
             fails.append(f"{r}: 자막 한 줄 예산 {budget:.2f}em < 최장 {cap_em:.2f}em — 화면에서 두 줄로 터진다")
 
         # 훅 — Headline.tsx는 top:% + translateY(-50%), lineHeight 1.2
-        hook_px = pr["headlineFontSizePct"] / 100 * H
+        hook_px = pr["headlineFontSizePct"] * hook_scale / 100 * H
         hook_w = hook_em * hook_px
         block = len(hook_lines) * hook_px * 1.2
         top = pr["headlineYPct"] / 100 * H - block / 2
@@ -306,8 +309,8 @@ def preflight(run_dir, want, cfg, preset_name, src, hook_cover_max, strict):
                 fails.append(f"{r}: 훅 하단 {top + block:.0f}px > {H - safe_t:.0f}px — 아랫줄이 잘린다")
             if cover > hook_cover_max:
                 warns.append(f"{r}: 훅이 원본 영상 폭의 {cover*100:.0f}% (기준 {hook_cover_max*100:.0f}%) — 훅 구간을 가린다")
-            if pr["headlineFontSizePct"] <= pr["fontSizePct"]:
-                warns.append(f"{r}: 헤드 {pr['headlineFontSizePct']}% ≤ 자막 {pr['fontSizePct']}% — 위계가 뒤집힌다")
+            if pr["headlineFontSizePct"] * hook_scale <= pr["fontSizePct"]:
+                warns.append(f"{r}: 헤드 {pr['headlineFontSizePct'] * hook_scale:.2f}% ≤ 자막 {pr['fontSizePct']}% — 위계가 뒤집힌다")
 
         # 라벨 — 박스 좌우 패딩 포함 (props.mjs 라벨여백가로)
         lab_px = pr["labelFontSizePct"] / 100 * H
@@ -325,7 +328,7 @@ def preflight(run_dir, want, cfg, preset_name, src, hook_cover_max, strict):
             warns.append(f"{r}: ratioOverrides에 항목이 없어 9:16 크기 그대로 간다 (화면 폭 대비 작아진다)")
 
         rows.append((r, f"{W}x{H}", cap_px, budget, cap_em, hook_px, cover, top, safe_t,
-                     pr["headlineFontSizePct"] / pr["fontSizePct"]))
+                     pr["headlineFontSizePct"] * hook_scale / pr["fontSizePct"]))
 
     print(f"   최장 자막 {cap_em:.2f}em · 훅 최장줄 {hook_em:.2f}em · 라벨 {lab_em:.2f}em")
     print("   비율   캔버스      자막px  예산em  훅px  훅폭/영상  훅상단/안전선  헤드/자막")

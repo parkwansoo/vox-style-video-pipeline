@@ -105,13 +105,15 @@ function loadHighlights(captionsPath) {
 //   {"hook":  {"lines": ["기미의 핵심은", "레이저가 아닙니다"], "startMs": 0, "endMs": 3000},
 //    "label": {"text": "기미의 핵심은 레이저가 아닙니다", "startMs": 3000, "endMs": 0},
 //    "강조단어": ["레이저가"]}
+// hook.fontScale(선택, 기본 1)로 이 편만 훅 크기를 줄인다 — 문구가 길어 한 줄이
+// 넘칠 때. 절대값이 아니라 **배율**이라 비율별 보정(4:5는 6.6% 등)이 유지된다.
 // 라벨 endMs 0 = 영상 끝까지. hook만 쓰거나 label만 써도 된다.
 // 줄바꿈은 hook.lines 배열이 결정한다. 화면 폭을 넘기면 잘리므로 한 줄 길이는
 // caption-font-metrics.json으로 미리 확인한다 (720폭·안전여백 6%에서 실효 634px:
 // 훅 6.0%=76.8px이면 상한 8.25em, 라벨 3.13%=40px이면 박스 패딩 포함 14.8em).
 function loadHeadline(captionsPath) {
   const empty = {
-    lines: [], startMs: 0, endMs: 0,
+    lines: [], startMs: 0, endMs: 0, fontScale: 1,
     labelText: "", labelStartMs: 0, labelEndMs: 0, 강조단어: [],
   };
   const p = path.join(path.dirname(captionsPath), "headline.json");
@@ -123,6 +125,9 @@ function loadHeadline(captionsPath) {
     lines: Array.isArray(hook.lines) ? hook.lines : [],
     startMs: Number.isFinite(hook.startMs) ? hook.startMs : 0,
     endMs: Number.isFinite(hook.endMs) ? hook.endMs : 0,
+    // 편마다 문구 길이가 달라 프리셋 하나로는 안 맞는다. 배율로 받아 비율별
+    // 보정 위에 곱한다 — 절대값으로 덮으면 16:9가 9:16과 같은 %가 돼 작아진다.
+    fontScale: Number.isFinite(hook.fontScale) && hook.fontScale > 0 ? hook.fontScale : 1,
     labelText: typeof label.text === "string" ? label.text : "",
     labelStartMs: Number.isFinite(label.startMs) ? label.startMs : 0,
     labelEndMs: Number.isFinite(label.endMs) ? label.endMs : 0,
@@ -150,7 +155,7 @@ export function buildInputProps({ src, captionsPath, presetName, asset }) {
     // 헤드 카피 — headline.json이 없으면 훅·라벨 문구가 다 비어 레이어 자체가 안 붙는다.
     // px 단위 값들은 자막 외곽선과 같은 규칙으로 높이 비례 보정한다 (프리셋 기준 1920px).
     헤드라인문구: hd.lines, 헤드라인시작ms: hd.startMs, 헤드라인종료ms: hd.endMs,
-    헤드라인크기: p.headlineFontSizePct ?? 6.0,
+    헤드라인크기: (p.headlineFontSizePct ?? 6.0) * hd.fontScale,
     헤드라인색: p.headlineColor ?? "#FFFFFF",
     헤드라인강조색: p.headlineHighlightColor ?? p.highlightColor1,
     헤드라인강조단어: hd.강조단어,
