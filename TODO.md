@@ -1,6 +1,7 @@
 # 백로그
 
 ## 대기
+- [ ] 2026-09-03 **export_ratios pad 단계가 1프레임 지연을 만들 수 있다** — 테스트1 빌드에서 4비율 출력이 소스보다 정확히 1프레임(42ms) 늦음(출력@25.0=소스@25.0−1f PSNR 39.5, 0f는 19.5). 직전 빌드는 0f 일치. `pad_ratio`의 `fps=` 필터가 소스 pts 위상에 따라 앞 프레임을 집는 것으로 추정. 재현 조건(소스 첫 pts) 확인 후 `setpts=PTS-STARTPTS` 선행 또는 verify 메시지에 "N프레임 지연" 진단 추가 — `.claude/skills/vox-video/scripts/export_ratios.py:158,178,196`, PROGRESS 2026-09-03 (46)
 - [ ] 2026-08-31 **Gemini Omni 1.1 Flash 업데이트 반영 검토** — 사용자 공지·API 목록 확인(`gemini-omni-1.1-flash` 등재). gen_video.py 기본 모델 교체 여부 + 구 preview의 인물 미화 성향(기미 옅어짐) 재검증 후 결정 — .claude/skills/vox-video/scripts/gen_video.py:24, PROGRESS 2026-08-31
 
 - [ ] 2026-08-28 **고지 문구 값은 mg-bodylab(파랑 배경) 실측 — 다른 스타일에서 재보정 필요** — `disclaimer.json`의 비율별 크기·그림자는 브이지샷 편 배경(문구 자리 휘도 48~197, 블러 패딩 좌170/우107~122)에서 잡은 값이다. 배경색이 다른 스타일로 가면 `--sample-only`로 견본을 뽑아 눈으로 재보정한다. 표본이 2개 스타일 이상 쌓이면 "배경 대비 -28" 규칙으로 자동 산출할지 판단 — `.claude/skills/vox-video/config/disclaimer.json`, `add_disclaimer.py`, SKILL.md 9.5절, PROGRESS 2026-08-28 (36)
