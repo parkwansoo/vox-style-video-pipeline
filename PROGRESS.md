@@ -5174,3 +5174,26 @@ comfyui_controlnet_aux`의 depth 전처리 노드(mole 정리 로그 2026-03-22�
 가려 "측정실패"만 9줄 나왔다. 무시하지 않고 `volumedetect` + 기본 로그 레벨로 바꿔
 수치를 얻었다(규율 ⑤). 첫 집계에서는 파일 크기 최대치로 오디오를 골라 무음 압축 전
 `narration_raw.mp3`가 섞여 꼬리가 +4.74/+6.27s로 튀었다 — 정본만 보도록 고쳤다.
+
+## 2026-09-13 (48) — HF `xet/` 청크 캐시 2.4GB 삭제
+
+(47)의 후속. 사용자가 `~/.cache/huggingface/xet/` 2.4GB의 정체와 삭제 가부를 물었다.
+코드 변경은 없다.
+
+**판정 근거**: ①파이프라인이 읽는 곳은 `hub/`뿐 — `tts.py:150-158`이
+`hub/models--mlx-community--whisper-large-v3-turbo/snapshots/`를 하드코딩하고, 프로젝트·
+형제 프로젝트(`01.AI코딩/` 전체) 소스에서 `xet`·`HF_XET_CACHE` 참조 0건, 셸 환경변수도
+없음. ②`hub/`의 `weights.safetensors` blob 1,613,977,612바이트가 `xet/logs/`의
+`File reconstruction completed successfully … total_bytes_scheduled 1613977612`(2026-06-27)
+와 정확히 일치하고 `.incomplete` 잔여 0개 — 완성본이 온전하다. ③`xet/`는 hf_xet
+(huggingface_hub 1.21.0 / hf_xet 1.5.1)의 **다운로드 시점 청크 캐시**로, 재조립 뒤에는
+실행 시 읽지 않고 다음 다운로드 때 자동 재생성된다.
+
+**"순수 중복"은 아니었다**: 청크 43개가 전부 2025-10-10 생성(birth·mtime)인데 로그의
+whisper 다운로드는 2026-06-27이고 2.4G > 1.5G다. whisper의 조각이 아니라 이 프로젝트
+이전 다른 다운로드의 잔여로 보인다(20_숏츠 시절 추정, 미확인). 판정에는 영향 없다 —
+무엇의 조각이든 다운로드 캐시라 삭제 영향은 같다.
+
+**삭제 후 검증**: `resolve_whisper_model()`이 같은 스냅샷(`a4aaeec0…`)을 반환하고
+`config.json`·`weights.safetensors` 1,613,977,612바이트 그대로. `~/.cache/huggingface`
+5.4G → 3.0G(hub만 남음: whisper 1.5G, Qwen3-ASR 1.4G(Handy), DocLayout-YOLO 39M(pdf2zh)).
