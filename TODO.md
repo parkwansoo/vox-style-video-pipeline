@@ -1,6 +1,7 @@
 # 백로그
 
 ## 대기
+- [ ] 2026-10-27 **[관찰 대기] Gemini TTS 3.8 전환 뒤 음절당 초 기준(1.3배속 0.167) 재확인** — clone-voice 백엔드가 2026-09-24부터 `gemini-3.8-flash-tts`로 합성하는데, 28번은 전환 뒤 합성 기록이 없다. 20번에서 같은 대본 5개를 3.8로 다시 합성해 보니 원속 발화 속도는 3.1과 같았다(1.3배속 환산 평균 6.04 대 6.05자/초, 20번 `data/tts-calibration.jsonl`, 20번 커밋 df75d6b). 다만 28번 기준은 **무음 압축 후** 값이라 3.8의 쉼 패턴이 다르면 어긋날 수 있다. 다음 편 첫 합성 때 `silence_compression` 요약과 실측 초/음절을 SKILL.md 분량표와 대조한다(「무음 압축 E2E 검증」 항목과 같은 편에서 처리) — `.claude/skills/vox-video/SKILL.md:125`, `.claude/skills/vox-video/scripts/tts.py`
 - [ ] 2026-09-03 **export_ratios pad 단계가 1프레임 지연을 만들 수 있다** — 테스트1 빌드에서 4비율 출력이 소스보다 정확히 1프레임(42ms) 늦음(출력@25.0=소스@25.0−1f PSNR 39.5, 0f는 19.5). 직전 빌드는 0f 일치. `pad_ratio`의 `fps=` 필터가 소스 pts 위상에 따라 앞 프레임을 집는 것으로 추정. 재현 조건(소스 첫 pts) 확인 후 `setpts=PTS-STARTPTS` 선행 또는 verify 메시지에 "N프레임 지연" 진단 추가 — `.claude/skills/vox-video/scripts/export_ratios.py:158,178,196`, PROGRESS 2026-09-03 (46)
 - [ ] 2026-08-31 **Gemini Omni 1.1 Flash 업데이트 반영 검토** — 사용자 공지·API 목록 확인(`gemini-omni-1.1-flash` 등재). gen_video.py 기본 모델 교체 여부 + 구 preview의 인물 미화 성향(기미 옅어짐) 재검증 후 결정 — .claude/skills/vox-video/scripts/gen_video.py:24, PROGRESS 2026-08-31
 

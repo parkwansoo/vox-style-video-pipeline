@@ -10,7 +10,9 @@ Pipeline: ensure_tts.sh(백엔드 자동 기동) → POST /api/tts → narration
 백엔드 프로필 id로 자동 변환하고, 톤 프롬프트로 화자 성격을 지정한다.
 외장 SSD(Samsung_T5)의 clone-voice 백엔드(8930)를 경유한다. 우리 .env에는 키가
 필요 없지만, 백엔드는 model_id="gemini"를 받아 **Google Gemini TTS 클라우드**
-(gemini-3.1-flash-tts-preview)로 합성한다 — 무료가 아니라 약 $0.03/분 과금이며
+(gemini-3.8-flash-tts, 2026-09-24 3.1에서 전환 — 실제 모델은 백엔드의
+CLONE_VOICE_GEMINI_MODEL_ID가 정한다)로 합성한다 — 무료가 아니라 약 $0.014/분
+(2026년 말까지 할인가, 2027-01부터 약 $0.027/분) 과금이며
 비용은 clone-voice에 등록된 Google 계정에서 발생한다.
 
 Run with the project venv: .venv/bin/python3 (mlx-whisper required).
